@@ -1,0 +1,184 @@
+{
+  "title": "LLM Selection Questionnaire",
+  "sections": [
+    {
+      "section_id": "sec-1",
+      "section_title": "Application overview",
+      "questions": [
+        {
+          "question": "What type of AI application are you building?",
+          "type": "single_choice",
+          "options": [
+            "Chatbot / Conversational AI",
+            "Coding Assistant",
+            "Document Processing",
+            "Enterprise Knowledge Assistant",
+            "Workflow Automation",
+            "Content Generation",
+            "Data Analysis Assistant",
+            "Other"
+          ]
+        },
+        {
+          "question": "Who will use it, and what should it do for them?",
+          "type": "descriptive"
+        }
+      ]
+    },
+    {
+      "section_id": "sec-2",
+      "section_title": "Interaction & scale",
+      "questions": [
+        {
+          "question": "How long is the content your AI will work with?",
+          "type": "single_choice",
+          "options": [
+            "Short",
+            "Medium",
+            "Large",
+            "Very Large"
+          ]
+        },
+        {
+          "question": "How fast must responses be?",
+          "type": "single_choice",
+          "options": [
+            "Real-time",
+            "Fast",
+            "Moderate",
+            "Background"
+          ]
+        },
+        {
+          "question": "What's the expected usage volume?",
+          "type": "single_choice",
+          "options": [
+            "Prototype",
+            "Small team",
+            "Startup",
+            "Enterprise",
+            "High scale"
+          ]
+        }
+      ]
+    },
+    {
+      "section_id": "sec-3",
+      "section_title": "Agentic behaviour",
+      "questions": [
+        {
+          "question": "How much will your AI act on its own vs. just respond?",
+          "type": "single_choice",
+          "options": [
+            "Non-Agentic",
+            "Semi-Agentic",
+            "Fully Agentic"
+          ]
+        },
+        {
+          "question": "Which framework or tool will power the agent?",
+          "type": "single_choice",
+          "options": [
+            "CrewAI",
+            "LangChain / LangGraph",
+            "AutoGen",
+            "Semantic Kernel",
+            "OpenAI Assistants API",
+            "Claude MCP",
+            "Custom / No framework",
+            "Undecided"
+          ]
+        },
+        {
+          "question": "Will it be a single agent or multiple agents working together?",
+          "type": "single_choice",
+          "options": [
+            "Single agent",
+            "Multi-agent system",
+            "Unsure"
+          ]
+        },
+        {
+          "question": "Which capabilities does your AI need?",
+          "type": "multi_choice",
+          "options": [
+            "Function / tool calling",
+            "Structured output / JSON",
+            "Vision / image understanding",
+            "Audio input",
+            "Code execution",
+            "Web search / grounding",
+            "Long context / large docs",
+            "Fine-tuning"
+          ]
+        }
+      ]
+    },
+    {
+      "section_id": "sec-4",
+      "section_title": "Coding tools",
+      "questions": [
+        {
+          "question": "Will your team use an AI coding tool or chat assistant as part of this project?",
+          "type": "single_choice",
+          "options": [
+            "Yes",
+            "No",
+            "Already using one"
+          ]
+        },
+        {
+          "question": "Which tool(s) are you using or considering?",
+          "type": "multi_choice",
+          "options": [
+            "Claude Code",
+            "Cursor",
+            "GitHub Copilot",
+            "Kiro",
+            "OpenCode / Aider",
+            "Claude.ai chat",
+            "Other"
+          ]
+        }
+      ]
+    },
+    {
+      "section_id": "sec-5",
+      "section_title": "Cost & priorities",
+      "questions": [
+        {
+          "question": "What matters most for this project?",
+          "type": "single_choice",
+          "options": [
+            "Best quality",
+            "Lowest latency",
+            "Lowest cost",
+            "Balanced"
+          ]
+        },
+        {
+          "question": "What's your estimated monthly AI budget?",
+          "type": "single_choice",
+          "options": [
+            "Under $50",
+            "$50–$200",
+            "$200–$1,000",
+            "$1,000–$10,000",
+            "$10,000+",
+            "No budget set"
+          ]
+        },
+        {
+          "question": "Any data privacy or hosting requirements?",
+          "type": "multi_choice",
+          "options": [
+            "Data must stay in our region",
+            "No data sent to third parties",
+            "On-premise / self-hosted required",
+            "None — cloud is fine"
+          ]
+        }
+      ]
+    }
+  ]
+}

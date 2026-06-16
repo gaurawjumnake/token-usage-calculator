@@ -1,0 +1,221 @@
+{
+  "title": "AI Application → LLM Selection Questionnaire",
+  "description": "Focused questionnaire for recommending suitable LLM models, architecture patterns, deployment approaches, workload estimates, and project cost projections.",
+  "sections": [
+    {
+      "section": "Application Overview",
+      "questions": [
+        {
+          "id": "Q1",
+          "question": "What type of AI application are you building?",
+          "type": "single_choice",
+          "options": [
+            "Chatbot / Conversational AI",
+            "Enterprise Knowledge Assistant",
+            "Coding Assistant",
+            "AI Search / RAG System",
+            "Workflow Automation",
+            "Autonomous Agent System",
+            "Research Assistant",
+            "Document Processing",
+            "Content Generation",
+            "Data Analysis Assistant",
+            "Multi-Agent System",
+            "Other"
+          ]
+        },
+        {
+          "id": "Q2",
+          "question": "What is the primary business objective?",
+          "type": "multi_choice",
+          "options": [
+            "Reduce operational cost",
+            "Improve productivity",
+            "Automate workflows",
+            "Improve customer support",
+            "Generate insights",
+            "Code generation / development acceleration",
+            "Research automation",
+            "Knowledge discovery",
+            "Content generation",
+            "Other"
+          ]
+        },
+        {
+          "id": "Q3",
+          "question": "Who will use it and what should it do for them?",
+          "type": "descriptive",
+          "description": [
+            "Target users",
+            "Key workflows",
+            "Expected AI behavior",
+            "Success criteria"
+          ]
+        }
+      ]
+    },
+    {
+      "section": "Project & Governance",
+      "questions": [
+        {
+          "id": "Q4",
+          "question": "What is the primary use case / task type?",
+          "type": "single_choice",
+          "options": [
+            "Modernization",
+            "New Feature",
+            "Bug Fix",
+            "Cloud Migration",
+            "API Integration",
+            "Security Audit",
+            "Performance Optimization",
+            "DevOps / CI-CD",
+            "Tech Debt Cleanup",
+            "Data Pipeline",
+            "Knowledge Management",
+            "Customer Support",
+            "Research & Analysis",
+            "Other"
+          ]
+        },
+        {
+          "id": "Q5",
+          "question": "Expected project duration?",
+          "type": "single_choice",
+          "options": [
+            "< 3 Months",
+            "3–6 Months",
+            "6–12 Months",
+            "1–3 Years",
+            "3+ Years"
+          ]
+        },
+        {
+          "id": "Q6",
+          "question": "Compliance, security, or hosting requirements?",
+          "type": "multi_choice",
+          "options": [
+            "No special requirements",
+            "GDPR",
+            "HIPAA",
+            "SOC2",
+            "ISO 27001",
+            "PCI-DSS",
+            "Data residency requirement",
+            "Private VPC deployment",
+            "On-premise deployment",
+            "No data sent to third parties"
+          ]
+        }
+      ]
+    },
+    {
+      "section": "Interaction & Scale",
+      "questions": [
+        {
+          "id": "Q7",
+          "question": "How long is the content your AI will typically process?",
+          "type": "single_choice",
+          "options": [
+            "Short",
+            "Medium",
+            "Large",
+            "Very Large"
+          ]
+        },
+        {
+          "id": "Q8",
+          "question": "How fast must responses be?",
+          "type": "single_choice",
+          "options": [
+            "Real-time",
+            "Fast",
+            "Moderate",
+            "Background"
+          ]
+        },
+        {
+          "id": "Q9",
+          "question": "Expected usage scale?",
+          "type": "single_choice",
+          "options": [
+            "Prototype",
+            "Small Team",
+            "Startup",
+            "Enterprise",
+            "High Scale"
+          ]
+        }
+      ]
+    },
+    {
+      "section": "AI Architecture",
+      "questions": [
+        {
+          "id": "Q10",
+          "question": "What type of AI behavior is required?",
+          "type": "single_choice",
+          "options": [
+            "Non-Agentic",
+            "Semi-Agentic",
+            "Fully Agentic"
+          ]
+        },
+        {
+          "id": "Q11",
+          "question": "Which framework or platform will power the solution?",
+          "type": "single_choice",
+          "options": [
+            "LangChain / LangGraph",
+            "CrewAI",
+            "AutoGen",
+            "Semantic Kernel",
+            "OpenAI Assistants API",
+            "Claude MCP",
+            "Custom / No Framework",
+            "Undecided"
+          ]
+        },
+        {
+          "id": "Q12",
+          "question": "Which capabilities are required?",
+          "type": "multi_choice",
+          "options": [
+            "Function / Tool Calling",
+            "Structured Output / JSON",
+            "Vision / Image Understanding",
+            "Audio Input",
+            "Code Execution",
+            "Web Search / Grounding",
+            "Long Context / Large Documents",
+            "Fine-Tuning"
+          ]
+        }
+      ]
+    },
+    {
+      "section": "Cost & Priorities",
+      "questions": [
+        {
+          "id": "Q13",
+          "question": "What matters most for this project?",
+          "type": "single_choice",
+          "options": [
+            "Best Quality",
+            "Lowest Latency",
+            "Lowest Cost",
+            "Balanced"
+          ]
+        }
+      ]
+    }
+  ],
+  "expected_output": {
+    "recommended_models": [],
+    "recommended_architecture": {},
+    "workload_profile": {},
+    "deployment_recommendation": {},
+    "cost_projection": {},
+    "optimisation_tips": []
+  }
+}

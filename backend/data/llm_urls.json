@@ -1,0 +1,456 @@
+{
+  "meta": {
+    "generated_date": "2026-05-29",
+    "total_providers": 22,
+    "notes": [
+      "URLs are official pricing/docs pages unless marked (secondary).",
+      "Providers without public pricing pages are excluded.",
+      "Cloud resellers (Bedrock, Vertex, Azure) are included separately as they have their own pricing layers.",
+      "Providers are grouped by category for scraper prioritisation."
+    ]
+  },
+
+  "providers": [
+
+    {
+      "provider_name": "OpenAI",
+      "provider_slug": "openai",
+      "hq": "USA",
+      "type": "first_party",
+      "priority": 1,
+      "urls": {
+        "pricing":          "https://openai.com/api/pricing",
+        "models_overview":  "https://platform.openai.com/docs/models",
+        "rate_limits":      "https://platform.openai.com/docs/guides/rate-limits",
+        "batch_api":        "https://platform.openai.com/docs/guides/batch",
+        "embeddings":       "https://platform.openai.com/docs/guides/embeddings",
+        "image_generation": "https://platform.openai.com/docs/guides/images",
+        "audio":            "https://platform.openai.com/docs/guides/audio",
+        "fine_tuning":      "https://platform.openai.com/docs/guides/fine-tuning",
+        "subscriptions":    "https://openai.com/chatgpt/pricing"
+      },
+      "models_to_scrape": [
+        "GPT-5 family", "GPT-4.1 family", "o3 / o4 reasoning",
+        "GPT-4o", "GPT-4o mini", "text-embedding-3",
+        "Whisper", "DALL-E 3", "TTS"
+      ]
+    },
+
+    {
+      "provider_name": "Anthropic",
+      "provider_slug": "anthropic",
+      "hq": "USA",
+      "type": "first_party",
+      "priority": 1,
+      "urls": {
+        "pricing":          "https://www.anthropic.com/pricing",
+        "api_pricing":      "https://docs.anthropic.com/en/docs/about-claude/models",
+        "models_overview":  "https://docs.anthropic.com/en/docs/about-claude/models/overview",
+        "rate_limits":      "https://docs.anthropic.com/en/docs/about-claude/models/model-deprecations",
+        "batch_api":        "https://docs.anthropic.com/en/docs/build-with-claude/batch-processing",
+        "context_caching":  "https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching",
+        "subscriptions":    "https://www.anthropic.com/claude/plans"
+      },
+      "models_to_scrape": [
+        "Claude Opus 4.x", "Claude Sonnet 4.x", "Claude Haiku 4.x"
+      ]
+    },
+
+    {
+      "provider_name": "Google AI (Gemini API)",
+      "provider_slug": "google",
+      "hq": "USA",
+      "type": "first_party",
+      "priority": 1,
+      "urls": {
+        "pricing":          "https://ai.google.dev/pricing",
+        "models_overview":  "https://ai.google.dev/gemini-api/docs/models",
+        "rate_limits":      "https://ai.google.dev/gemini-api/docs/rate-limits",
+        "context_caching":  "https://ai.google.dev/gemini-api/docs/caching",
+        "embeddings":       "https://ai.google.dev/gemini-api/docs/embeddings",
+        "image_generation": "https://ai.google.dev/gemini-api/docs/image-generation",
+        "subscriptions":    "https://one.google.com/about/plans"
+      },
+      "models_to_scrape": [
+        "Gemini 2.5 Pro", "Gemini 2.5 Flash", "Gemini 2.5 Flash-Lite",
+        "Gemini 3.x family", "text-embedding-004", "Imagen 3"
+      ]
+    },
+
+    {
+      "provider_name": "xAI (Grok)",
+      "provider_slug": "xai",
+      "hq": "USA",
+      "type": "first_party",
+      "priority": 1,
+      "urls": {
+        "pricing":          "https://x.ai/api",
+        "models_docs":      "https://docs.x.ai/docs/models",
+        "rate_limits":      "https://docs.x.ai/docs/rate-limits",
+        "context_caching":  "https://docs.x.ai/docs/caching",
+        "batch_api":        "https://docs.x.ai/docs/batch",
+        "subscriptions":    "https://x.ai/grok"
+      },
+      "models_to_scrape": [
+        "Grok 4.3", "Grok 4.20", "Grok 4.1 Fast",
+        "Grok 4 Heavy", "Grok 3 Mini (legacy)"
+      ]
+    },
+
+    {
+      "provider_name": "Mistral AI",
+      "provider_slug": "mistral",
+      "hq": "France",
+      "type": "first_party",
+      "priority": 1,
+      "urls": {
+        "pricing":          "https://mistral.ai/technology/#pricing",
+        "models_overview":  "https://docs.mistral.ai/getting-started/models/models_overview",
+        "api_docs":         "https://docs.mistral.ai/api",
+        "embeddings":       "https://docs.mistral.ai/capabilities/embeddings",
+        "fine_tuning":      "https://docs.mistral.ai/capabilities/finetuning",
+        "batch_api":        "https://docs.mistral.ai/capabilities/batch"
+      },
+      "models_to_scrape": [
+        "Mistral Large 3", "Mistral Small 4", "Mistral Medium",
+        "Codestral", "Ministral 3B", "Ministral 8B",
+        "Mistral Embed", "Pixtral Large"
+      ]
+    },
+
+    {
+      "provider_name": "Cohere",
+      "provider_slug": "cohere",
+      "hq": "Canada",
+      "type": "first_party",
+      "priority": 1,
+      "urls": {
+        "pricing":          "https://cohere.com/pricing",
+        "models_overview":  "https://docs.cohere.com/docs/models",
+        "embeddings":       "https://docs.cohere.com/docs/embed",
+        "rerank":           "https://docs.cohere.com/docs/rerank",
+        "fine_tuning":      "https://docs.cohere.com/docs/fine-tuning",
+        "rate_limits":      "https://docs.cohere.com/docs/rate-limits"
+      },
+      "models_to_scrape": [
+        "Command R+", "Command R", "Command R7B",
+        "Embed v3 (English & Multilingual)",
+        "Rerank v3", "Aya Expanse"
+      ]
+    },
+
+    {
+      "provider_name": "DeepSeek",
+      "provider_slug": "deepseek",
+      "hq": "China",
+      "type": "first_party",
+      "priority": 1,
+      "urls": {
+        "pricing":          "https://api-docs.deepseek.com/quick_start/pricing",
+        "models_overview":  "https://api-docs.deepseek.com/quick_start/models",
+        "context_caching":  "https://api-docs.deepseek.com/guides/kv_cache",
+        "batch_api":        "https://api-docs.deepseek.com/guides/batch"
+      },
+      "models_to_scrape": [
+        "DeepSeek V4 Pro", "DeepSeek V4 Flash",
+        "DeepSeek V3.2", "DeepSeek R1",
+        "DeepSeek Coder V2"
+      ]
+    },
+
+    {
+      "provider_name": "Perplexity AI",
+      "provider_slug": "perplexity",
+      "hq": "USA",
+      "type": "first_party",
+      "priority": 2,
+      "urls": {
+        "pricing":          "https://www.perplexity.ai/pricing",
+        "api_pricing":      "https://docs.perplexity.ai/docs/getting-started/pricing",
+        "models_overview":  "https://docs.perplexity.ai/models/model-cards",
+        "rate_limits":      "https://docs.perplexity.ai/docs/getting-started/rate-limits"
+      },
+      "models_to_scrape": [
+        "Sonar Pro", "Sonar", "Sonar Reasoning",
+        "Sonar Deep Research"
+      ],
+      "special_notes": "Perplexity Sonar has a unique dual billing: per-token + per-request (search). Extract both separately."
+    },
+
+    {
+      "provider_name": "Groq",
+      "provider_slug": "groq",
+      "hq": "USA",
+      "type": "inference_provider",
+      "priority": 2,
+      "urls": {
+        "pricing":          "https://groq.com/pricing",
+        "models_overview":  "https://console.groq.com/docs/models",
+        "rate_limits":      "https://console.groq.com/docs/rate-limits",
+        "batch_api":        "https://console.groq.com/docs/batch"
+      },
+      "models_to_scrape": [
+        "Llama 3.3 70B Versatile", "Llama 4 Scout",
+        "GPT-OSS 120B", "GPT-OSS 20B",
+        "Qwen3 32B", "Kimi K2.6",
+        "Gemma 3 27B", "Mistral Saba"
+      ],
+      "special_notes": "Groq uses LPU hardware. Speed (tokens/sec) is a key differentiator — scrape latency data if available."
+    },
+
+    {
+      "provider_name": "Together AI",
+      "provider_slug": "together",
+      "hq": "USA",
+      "type": "inference_provider",
+      "priority": 2,
+      "urls": {
+        "pricing":          "https://www.together.ai/pricing",
+        "models_catalogue": "https://api.together.ai/models",
+        "fine_tuning":      "https://docs.together.ai/docs/fine-tuning",
+        "dedicated":        "https://docs.together.ai/docs/dedicated-instances",
+        "rate_limits":      "https://docs.together.ai/docs/rate-limits"
+      },
+      "models_to_scrape": [
+        "DeepSeek V4 Pro (Together)", "DeepSeek V3.1 (Together)",
+        "Llama 3.3 70B (Together)", "Llama 4 Maverick",
+        "Kimi K2.6 (Together)", "GLM 5.1",
+        "MiniMax M2", "Qwen3.6",
+        "GPT-OSS 120B (Together)"
+      ],
+      "special_notes": "Together AI offers LoRA fine-tuning at $8-12/M training tokens. Scrape fine_tuning URL specifically."
+    },
+
+    {
+      "provider_name": "Fireworks AI",
+      "provider_slug": "fireworks",
+      "hq": "USA",
+      "type": "inference_provider",
+      "priority": 2,
+      "urls": {
+        "pricing":          "https://fireworks.ai/pricing",
+        "models_catalogue": "https://fireworks.ai/models",
+        "serverless":       "https://docs.fireworks.ai/guides/serverless-or-dedicated",
+        "fine_tuning":      "https://docs.fireworks.ai/fine-tuning/introduction",
+        "function_calling": "https://docs.fireworks.ai/guides/function-calling"
+      },
+      "models_to_scrape": [
+        "Llama 4 Maverick (Fireworks)", "Llama 3.1 405B (Fireworks)",
+        "Llama 3.3 70B (Fireworks)", "DeepSeek V3 (Fireworks)",
+        "Qwen3 235B (Fireworks)", "Mixtral 8x22B (Fireworks)",
+        "Firefunction V2"
+      ]
+    },
+
+    {
+      "provider_name": "DeepInfra",
+      "provider_slug": "deepinfra",
+      "hq": "USA",
+      "type": "inference_provider",
+      "priority": 2,
+      "urls": {
+        "pricing":          "https://deepinfra.com/pricing",
+        "models_catalogue": "https://deepinfra.com/models",
+        "embeddings":       "https://deepinfra.com/models/embeddings",
+        "image_generation": "https://deepinfra.com/models/image-generation"
+      },
+      "models_to_scrape": [
+        "Kimi K2.6 (DeepInfra)", "Qwen3.5-397B-A17B",
+        "GLM-4.7-Flash", "DeepSeek V3.2 (DeepInfra)",
+        "Llama 4 Maverick (DeepInfra)", "Llama 3.3 70B (DeepInfra)",
+        "FLUX-2 (image)", "Gemini 3.5 Flash (DeepInfra)"
+      ],
+      "special_notes": "DeepInfra is typically the cheapest per-token for open-source models. Also carries image generation models."
+    },
+
+    {
+      "provider_name": "OpenRouter",
+      "provider_slug": "openrouter",
+      "hq": "USA",
+      "type": "aggregator_gateway",
+      "priority": 2,
+      "urls": {
+        "pricing":          "https://openrouter.ai/models",
+        "docs":             "https://openrouter.ai/docs",
+        "providers_list":   "https://openrouter.ai/docs/providers",
+        "free_models":      "https://openrouter.ai/models?q=:free"
+      },
+      "special_notes": "OpenRouter is a gateway aggregator — 315+ models from all providers at near-direct pricing. Useful as a cross-reference/validation source for prices. Scrape as a secondary validation source, not primary."
+    },
+
+    {
+      "provider_name": "Amazon Bedrock",
+      "provider_slug": "bedrock",
+      "hq": "USA",
+      "type": "cloud_reseller",
+      "priority": 2,
+      "urls": {
+        "pricing":          "https://aws.amazon.com/bedrock/pricing",
+        "models_overview":  "https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html",
+        "batch_inference":  "https://docs.aws.amazon.com/bedrock/latest/userguide/batch-inference.html",
+        "provisioned":      "https://docs.aws.amazon.com/bedrock/latest/userguide/prov-throughput.html",
+        "knowledge_bases":  "https://aws.amazon.com/bedrock/knowledge-bases/pricing",
+        "agents":           "https://aws.amazon.com/bedrock/agents/pricing"
+      },
+      "models_to_scrape": [
+        "Amazon Nova Micro", "Amazon Nova Lite", "Amazon Nova Pro",
+        "Amazon Titan Text", "Amazon Titan Embeddings",
+        "Claude (via Bedrock)", "Llama 4 (via Bedrock)",
+        "Mistral (via Bedrock)", "Cohere (via Bedrock)"
+      ],
+      "special_notes": "Bedrock adds its own margin on resold models. Also has add-on pricing for Knowledge Bases, Agents, Guardrails — scrape agents and knowledge_bases URLs."
+    },
+
+    {
+      "provider_name": "Google Vertex AI",
+      "provider_slug": "vertex",
+      "hq": "USA",
+      "type": "cloud_reseller",
+      "priority": 2,
+      "urls": {
+        "pricing":          "https://cloud.google.com/vertex-ai/generative-ai/pricing",
+        "models_overview":  "https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models",
+        "model_garden":     "https://cloud.google.com/vertex-ai/generative-ai/docs/model-garden/explore-models",
+        "batch_prediction": "https://cloud.google.com/vertex-ai/docs/predictions/batch-predictions",
+        "embeddings":       "https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings"
+      },
+      "models_to_scrape": [
+        "Gemini 2.5 Pro (Vertex)", "Gemini 2.5 Flash (Vertex)",
+        "Gemini 3 Pro (Vertex)", "Claude (via Vertex)",
+        "Llama 4 (via Vertex)", "Mistral (via Vertex)",
+        "text-embedding-005 (Vertex)", "Imagen 3 (Vertex)"
+      ],
+      "special_notes": "Vertex pricing for the same model (e.g. Gemini) differs from Google AI Studio. Scrape separately. Batch prediction is 50% cheaper."
+    },
+
+    {
+      "provider_name": "Azure OpenAI",
+      "provider_slug": "azure_openai",
+      "hq": "USA",
+      "type": "cloud_reseller",
+      "priority": 2,
+      "urls": {
+        "pricing":          "https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service",
+        "models_overview":  "https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models",
+        "provisioned_ptu":  "https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/provisioned-throughput",
+        "fine_tuning":      "https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/fine-tuning-considerations",
+        "rate_limits":      "https://learn.microsoft.com/en-us/azure/ai-services/openai/quotas-limits"
+      },
+      "models_to_scrape": [
+        "GPT-5.4 (Azure)", "GPT-4.1 (Azure)", "GPT-4o (Azure)",
+        "o3 (Azure)", "text-embedding-3 (Azure)",
+        "Whisper (Azure)", "DALL-E 3 (Azure)"
+      ],
+      "special_notes": "Azure uses Provisioned Throughput Units (PTUs) in addition to pay-per-token. PTU pricing is capacity-based — scrape provisioned_ptu URL specifically."
+    },
+
+    {
+      "provider_name": "Cerebras",
+      "provider_slug": "cerebras",
+      "hq": "USA",
+      "type": "inference_provider",
+      "priority": 3,
+      "urls": {
+        "pricing":          "https://cerebras.ai/pricing",
+        "models_overview":  "https://inference-docs.cerebras.ai/introduction",
+        "rate_limits":      "https://inference-docs.cerebras.ai/rate-limits"
+      },
+      "models_to_scrape": [
+        "Llama 3.3 70B (Cerebras)", "GPT-OSS 120B (Cerebras)",
+        "Qwen3 32B (Cerebras)", "DeepSeek R1 (Cerebras)"
+      ],
+      "special_notes": "Cerebras WSE hardware achieves ~3000 tokens/sec — fastest inference available. Free tier with daily token caps."
+    },
+
+    {
+      "provider_name": "Replicate",
+      "provider_slug": "replicate",
+      "hq": "USA",
+      "type": "inference_provider",
+      "priority": 3,
+      "urls": {
+        "pricing":          "https://replicate.com/pricing",
+        "models_catalogue": "https://replicate.com/explore",
+        "deployments":      "https://replicate.com/docs/deployments",
+        "fine_tuning":      "https://replicate.com/docs/get-started/fine-tune-a-model"
+      },
+      "special_notes": "Replicate prices in seconds of compute per model (GPU-seconds), not per token. Normalisation to per-million-tokens requires additional calculation — flag this in missing_information if per-token rate is unavailable."
+    },
+
+    {
+      "provider_name": "Hugging Face Inference",
+      "provider_slug": "huggingface",
+      "hq": "USA",
+      "type": "inference_provider",
+      "priority": 3,
+      "urls": {
+        "pricing":            "https://huggingface.co/pricing",
+        "inference_api":      "https://huggingface.co/docs/api-inference/index",
+        "inference_endpoints":"https://huggingface.co/docs/inference-endpoints/pricing",
+        "serverless_api":     "https://huggingface.co/docs/api-inference/pricing",
+        "pro_subscription":   "https://huggingface.co/pricing#hub"
+      },
+      "special_notes": "Hugging Face has two separate products: Serverless Inference API (per-token) and Dedicated Inference Endpoints (per-hour GPU). Scrape both. PRO users get $2/month free credits."
+    },
+
+    {
+      "provider_name": "Nvidia NIM",
+      "provider_slug": "nvidia_nim",
+      "hq": "USA",
+      "type": "inference_provider",
+      "priority": 3,
+      "urls": {
+        "pricing":          "https://build.nvidia.com/explore/discover",
+        "nim_catalogue":    "https://build.nvidia.com/models",
+        "api_docs":         "https://docs.api.nvidia.com/nim/reference",
+        "self_host_nim":    "https://docs.nvidia.com/nim/large-language-models/latest/getting-started.html"
+      },
+      "models_to_scrape": [
+        "Llama 4 Maverick (NIM)", "DeepSeek V4 Pro (NIM)",
+        "Mistral Large (NIM)", "Nemotron 3 Super 120B",
+        "Qwen3 235B (NIM)"
+      ],
+      "special_notes": "NVIDIA NIM has both hosted cloud credits AND self-hostable NIM microservices. Pricing for hosted = credits/token; self-host = infrastructure cost only. Scrape hosted pricing from build.nvidia.com."
+    },
+
+    {
+      "provider_name": "Alibaba Cloud (DashScope / Qwen)",
+      "provider_slug": "alibaba_qwen",
+      "hq": "China",
+      "type": "first_party",
+      "priority": 3,
+      "urls": {
+        "pricing":          "https://www.alibabacloud.com/help/en/model-studio/pricing",
+        "models_overview":  "https://www.alibabacloud.com/help/en/model-studio/getting-started/models",
+        "qwen_api":         "https://help.aliyun.com/zh/dashscope/developer-reference/tongyi-qianwen-7b-14b-72b-metered-billing",
+        "embeddings":       "https://www.alibabacloud.com/help/en/model-studio/text-embedding"
+      },
+      "models_to_scrape": [
+        "Qwen3.5-397B-A17B", "Qwen3-235B-A22B",
+        "Qwen3-32B", "Qwen3-30B-A3B",
+        "Qwen2.5 family", "Qwen2.5-Coder",
+        "text-embedding-v3"
+      ],
+      "special_notes": "Prices listed in CNY on Chinese pages and USD on international pages. Prefer the international pricing URL. Cross-check both for accuracy."
+    },
+
+    {
+      "provider_name": "AI21 Labs",
+      "provider_slug": "ai21",
+      "hq": "Israel",
+      "type": "first_party",
+      "priority": 3,
+      "urls": {
+        "pricing":          "https://www.ai21.com/pricing",
+        "models_overview":  "https://docs.ai21.com/docs/models-overview",
+        "jamba_docs":       "https://docs.ai21.com/docs/jamba-15-models"
+      },
+      "models_to_scrape": [
+        "Jamba 1.6 Large", "Jamba 1.6 Mini",
+        "Jamba 1.5 Large", "Jamba 1.5 Mini"
+      ],
+      "special_notes": "AI21 is relatively niche — if pricing page is missing models, fall back to their API changelog at https://docs.ai21.com/changelog."
+    }
+
+  ]
+}

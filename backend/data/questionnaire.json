@@ -1,0 +1,221 @@
+{
+  "title": "AI Application → LLM Selection Questionnaire",
+  "description": "Questionnaire for recommending AI architecture, LLM models, deployment approach, and workload assumptions for token cost estimation.",
+  "sections": [
+    {
+      "section": "Application Overview",
+      "questions": [
+        {
+          "id": "Q1",
+          "question": "What type of AI application are you building?",
+          "type": "single_choice",
+          "options": [
+            "Chatbot / Conversational AI",
+            "Enterprise Knowledge Assistant",
+            "Coding Assistant",
+            "AI Search / RAG System",
+            "Workflow Automation",
+            "Autonomous Agent System",
+            "Research Assistant",
+            "Document Processing",
+            "Content Generation",
+            "Data Analysis Assistant",
+            "Multi-Agent System",
+            "Other"
+          ]
+        },
+        {
+          "id": "Q2",
+          "question": "What is the primary use case / task type?",
+          "type": "single_choice",
+          "options": [
+            "Modernization",
+            "New Feature Development",
+            "Bug Fix",
+            "Cloud Migration",
+            "API Integration",
+            "Security Audit",
+            "Performance Optimization",
+            "DevOps / CI-CD",
+            "Tech Debt Cleanup",
+            "Data Pipeline",
+            "Knowledge Assistant",
+            "Document Processing",
+            "Research & Analysis",
+            "Content Generation",
+            "Customer Support",
+            "Other"
+          ]
+        },
+        {
+          "id": "Q3",
+          "question": "What is the primary business objective?",
+          "type": "multi_choice",
+          "options": [
+            "Reduce operational cost",
+            "Improve productivity",
+            "Automate workflows",
+            "Improve customer support",
+            "Generate insights",
+            "Accelerate software delivery",
+            "Improve compliance",
+            "Research automation",
+            "Knowledge discovery",
+            "Content generation"
+          ]
+        },
+        {
+          "id": "Q4",
+          "question": "Briefly describe the application and expected workflow.",
+          "type": "descriptive"
+        }
+      ]
+    },
+
+    {
+      "section": "Architecture & AI Behaviour",
+      "questions": [
+        {
+          "id": "Q5",
+          "question": "What type of AI behaviour is required?",
+          "type": "single_choice",
+          "options": [
+            "Non-Agentic",
+            "Semi-Agentic",
+            "Fully Agentic"
+          ]
+        },
+        {
+          "id": "Q6",
+          "question": "What type of interactions will the AI handle?",
+          "type": "multi_choice",
+          "options": [
+            "Conversational chat",
+            "Document uploads",
+            "Code generation",
+            "Tool/API execution",
+            "Workflow execution",
+            "Knowledge retrieval",
+            "Structured extraction",
+            "Report generation"
+          ]
+        },
+        {
+          "id": "Q7",
+          "question": "Approximate context size required?",
+          "type": "single_choice",
+          "options": [
+            "Small (<10K)",
+            "Medium (10K-50K)",
+            "Large (50K-200K)",
+            "Very Large (200K+)",
+            "Unsure"
+          ]
+        }
+      ]
+    },
+
+    {
+      "section": "Scale & Usage",
+      "questions": [
+        {
+          "id": "Q8",
+          "question": "Expected scale of usage?",
+          "type": "single_choice",
+          "options": [
+            "Prototype / Internal POC",
+            "Small Team",
+            "Startup Scale",
+            "Enterprise Scale",
+            "High-Scale Public Product"
+          ]
+        },
+        {
+          "id": "Q9",
+          "question": "Expected project duration?",
+          "type": "single_choice",
+          "options": [
+            "< 3 Months",
+            "3 - 6 Months",
+            "6 - 12 Months",
+            "1 - 3 Years",
+            "3+ Years"
+          ]
+        },
+        {
+          "id": "Q10",
+          "question": "Expected response time requirement?",
+          "type": "single_choice",
+          "options": [
+            "Real-time (<2 sec)",
+            "Fast (2-5 sec)",
+            "Moderate (5-15 sec)",
+            "Async acceptable"
+          ]
+        }
+      ]
+    },
+
+    {
+      "section": "Governance & Compliance",
+      "questions": [
+        {
+          "id": "Q11",
+          "question": "Compliance requirements?",
+          "type": "multi_choice",
+          "options": [
+            "None",
+            "GDPR",
+            "HIPAA",
+            "SOC2",
+            "ISO 27001",
+            "PCI-DSS",
+            "FedRAMP",
+            "Data Residency Required",
+            "Private Deployment Required",
+            "Other"
+          ]
+        },
+        {
+          "id": "Q12",
+          "question": "Data sensitivity level?",
+          "type": "single_choice",
+          "options": [
+            "Public",
+            "Internal",
+            "Confidential",
+            "Highly Restricted"
+          ]
+        }
+      ]
+    },
+
+    {
+      "section": "Cost & Priorities",
+      "questions": [
+        {
+          "id": "Q13",
+          "question": "What matters most?",
+          "type": "single_choice",
+          "options": [
+            "Best Quality",
+            "Lowest Cost",
+            "Lowest Latency",
+            "Balanced Tradeoff"
+          ]
+        },
+        {
+          "id": "Q14",
+          "question": "Cost sensitivity level?",
+          "type": "single_choice",
+          "options": [
+            "Extremely Cost Sensitive",
+            "Moderately Cost Sensitive",
+            "Quality More Important",
+            "Premium Quality Regardless of Cost"
+          ]
+        }
+      ]
+    }
+  ]
+}

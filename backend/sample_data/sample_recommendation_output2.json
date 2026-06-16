@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-06-07T18:52:34.557191+00:00",
+  "input_hash": "727f8cb5acaea9ad9f88c1eb435b504d48987f0c35d97d1342abbb72231f35a7",
+  "questionnaire_summary": {
+    "app_type": "Enterprise Knowledge Assistant",
+    "agentic_level": "Semi-Agentic",
+    "scale": "Enterprise",
+    "priority": "Balanced",
+    "budget_range": "$1,000–$10,000"
+  },
+  "workload_profile": {
+    "project_duration_months": 12,
+    "active_users": 5000,
+    "requests_per_user_per_day": 5,
+    "avg_input_tokens": 25000,
+    "avg_output_tokens": 1200,
+    "avg_reasoning_tokens": 2000,
+    "avg_cached_tokens": 10000,
+    "min_context_window": 64000,
+    "recommended_context_window": 128000,
+    "complexity": "medium",
+    "latency_requirement": "medium",
+    "batch_eligible": false,
+    "cache_eligible": true
+  },
+  "single_model_recommendations": [
+    {
+      "category": "recommended",
+      "model_id": "gpt-4-turbo",
+      "why": "Balances strong reasoning capabilities, long context support, and fast latency for enterprise-scale applications.",
+      "tradeoffs": "Higher cost compared to budget options but provides better performance and reliability."
+    },
+    {
+      "category": "budget",
+      "model_id": "llama-4-scout",
+      "why": "Offers a cost-effective solution with sufficient context window and reasoning capabilities for the use case.",
+      "tradeoffs": "May have slightly slower response times and less advanced reasoning capabilities compared to premium options."
+    },
+    {
+      "category": "premium",
+      "model_id": "hermes-4-70b",
+      "why": "Provides superior reasoning capabilities, long context handling, and advanced tool integration for complex queries.",
+      "tradeoffs": "Higher cost and potentially higher latency compared to other options."
+    }
+  ],
+  "architecture": {
+    "pattern": "RAG",
+    "hosting_strategy": "Self-Hosted",
+    "agent_framework_recommendation": null,
+    "framework_constraints": [],
+    "roles": [
+      {
+        "role": "retriever",
+        "recommended_model_id": "gpt-4-turbo",
+        "budget_model_id": "llama-4-scout",
+        "premium_model_id": "hermes-4-70b",
+        "reason": "Handles retrieval of relevant HR policies and documents with long context support and structured output."
+      },
+      {
+        "role": "executor",
+        "recommended_model_id": "gpt-4-turbo",
+        "budget_model_id": "llama-4-scout",
+        "premium_model_id": "hermes-4-70b",
+        "reason": "Executes reasoning and generates structured responses for employee queries and document summaries."
+      }
+    ],
+    "notes": []
+  },
+  "optimisation_tips": [
+    {
+      "impact": "medium",
+      "title": "Implement prompt caching for frequently asked questions to reduce token usage...",
+      "detail": "Implement prompt caching for frequently asked questions to reduce token usage and improve response times."
+    },
+    {
+      "impact": "medium",
+      "title": "Optimize retrieval by using embeddings to narrow down relevant documents before...",
+      "detail": "Optimize retrieval by using embeddings to narrow down relevant documents before passing them to the model."
+    },
+    {
+      "impact": "low",
+      "title": "Consider fine-tuning a smaller model for specific HR-related tasks to reduce...",
+      "detail": "Consider fine-tuning a smaller model for specific HR-related tasks to reduce costs while maintaining accuracy."
+    }
+  ],
+  "confidence": {
+    "score": "medium",
+    "reason": "The recommendations align with the application's requirements for long context handling, structured output, and tool calling capabilities. The selected models also meet the privacy and latency constraints.",
+    "assumptions": [
+      "The application will primarily handle text-based HR queries and document summarization.",
+      "The enterprise-scale user base will generate a high volume of requests, necessitating robust and scalable models.",
+      "The latency requirement is medium, allowing for some trade-offs between speed and reasoning quality."
+    ]
+  }
+}

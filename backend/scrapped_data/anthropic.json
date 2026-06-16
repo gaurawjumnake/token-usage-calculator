@@ -1,0 +1,164 @@
+{
+  "provider": "Anthropic",
+  "pricing_last_updated": "2023-10-11",
+  "pricing_confidence": "high",
+  "subscription_plans": [
+    {
+      "plan_name": "Free",
+      "price_per_user_per_month": 0,
+      "annual_price_per_user_per_month": null,
+      "billing_options": [
+        "monthly"
+      ],
+      "includes": "Chat on web, iOS, Android, and desktop; generate code and visualize data; write, edit, and create content; ability to search the web; memory across conversations; create files and execute code.",
+      "token_limit": null,
+      "token_limit_unit": null,
+      "rate_limit_note": "Usage limits apply.",
+      "models_included": [
+        "Opus",
+        "Sonnet",
+        "Haiku"
+      ],
+      "is_api_plan": false
+    },
+    {
+      "plan_name": "Pro",
+      "price_per_user_per_month": 20.0,
+      "annual_price_per_user_per_month": 17.0,
+      "billing_options": [
+        "monthly",
+        "annual"
+      ],
+      "includes": "Everything in Free, plus: more usage; includes Claude Code and Claude Cowork; access to unlimited projects to organize chats and documents; access to Research; ability to use more Claude models; Claude for Microsoft 365 and Outlook.",
+      "token_limit": null,
+      "token_limit_unit": null,
+      "rate_limit_note": "Usage limits apply.",
+      "models_included": [
+        "Opus",
+        "Sonnet",
+        "Haiku"
+      ],
+      "is_api_plan": false
+    },
+    {
+      "plan_name": "Max",
+      "price_per_user_per_month": 100.0,
+      "annual_price_per_user_per_month": null,
+      "billing_options": [
+        "monthly"
+      ],
+      "includes": "Everything in Pro, plus: choose 5x or 20x more usage than Pro; higher output limits for all tasks; early access to advanced Claude features; priority access at high traffic times.",
+      "token_limit": null,
+      "token_limit_unit": null,
+      "rate_limit_note": "Usage limits apply.",
+      "models_included": [
+        "Opus",
+        "Sonnet",
+        "Haiku"
+      ],
+      "is_api_plan": false
+    },
+    {
+      "plan_name": "Team",
+      "price_per_user_per_month": 25.0,
+      "annual_price_per_user_per_month": 20.0,
+      "billing_options": [
+        "monthly",
+        "annual"
+      ],
+      "includes": "Standard seat: all Claude features, plus more usage; premium seat: 5x more usage than standard seats; includes Claude Code and Claude Cowork; connect Microsoft 365, Slack, and more; enterprise search across your organization; central billing and administration; single sign-on (SSO); admin controls for remote and local connectors; enterprise deployment for the Claude desktop app.",
+      "token_limit": null,
+      "token_limit_unit": null,
+      "rate_limit_note": "Usage limits apply.",
+      "models_included": [
+        "Opus",
+        "Sonnet",
+        "Haiku"
+      ],
+      "is_api_plan": false
+    },
+    {
+      "plan_name": "Enterprise",
+      "price_per_user_per_month": 20.0,
+      "annual_price_per_user_per_month": null,
+      "billing_options": [
+        "monthly",
+        "annual"
+      ],
+      "includes": "All Team plan features, plus: admins set user and org spend limits; role-based access with fine-grained permissioning; System for Cross-domain Identity Management (SCIM); audit logs; compliance API for observability and monitoring; custom data retention controls; network-level access control; IP allowlisting; HIPAA-ready offering.",
+      "token_limit": null,
+      "token_limit_unit": null,
+      "rate_limit_note": "Usage limits apply.",
+      "models_included": [
+        "Opus",
+        "Sonnet",
+        "Haiku"
+      ],
+      "is_api_plan": false
+    }
+  ],
+  "free_tier": {
+    "exists": true,
+    "credits": null,
+    "credit_unit": null,
+    "resets": "monthly",
+    "rate_limit_note": "Usage limits apply.",
+    "models_included": [
+      "Opus",
+      "Sonnet",
+      "Haiku"
+    ],
+    "requires_card": false
+  },
+  "rate_limits": {
+    "tiers": [
+      {
+        "tier_name": "Tier 1",
+        "requests_per_minute": 60,
+        "tokens_per_minute": 2000000,
+        "requests_per_day": null,
+        "tokens_per_day": null,
+        "limit_scope": "per_org",
+        "notes": "Includes cache-aware input token per minute limits; cached tokens do not count towards rate limits."
+      },
+      {
+        "tier_name": "Tier 2",
+        "requests_per_minute": 120,
+        "tokens_per_minute": 4000000,
+        "requests_per_day": null,
+        "tokens_per_day": null,
+        "limit_scope": "per_org",
+        "notes": "Includes cache-aware input token per minute limits; cached tokens do not count towards rate limits."
+      },
+      {
+        "tier_name": "Tier 3",
+        "requests_per_minute": 240,
+        "tokens_per_minute": 8000000,
+        "requests_per_day": null,
+        "tokens_per_day": null,
+        "limit_scope": "per_org",
+        "notes": "Includes cache-aware input token per minute limits; cached tokens do not count towards rate limits."
+      },
+      {
+        "tier_name": "Tier 4",
+        "requests_per_minute": 480,
+        "tokens_per_minute": 16000000,
+        "requests_per_day": null,
+        "tokens_per_day": null,
+        "limit_scope": "per_org",
+        "notes": "Includes cache-aware input token per minute limits; cached tokens do not count towards rate limits."
+      }
+    ]
+  },
+  "missing_information": [
+    "free_tier.credit_unit",
+    "free_tier.credits"
+  ],
+  "notes": [
+    "price_per_user_per_month for Pro, Max, Team, and Enterprise plans converted to float.",
+    "price_per_user_per_month and is_api_plan validation passed for all subscription plans.",
+    "annual_price_per_user_per_month for Team plan validated as less than monthly price.",
+    "limit_scope for all rate limit tiers is valid.",
+    "pricing_confidence is valid and set to high."
+  ]
+}
