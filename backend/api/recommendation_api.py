@@ -44,6 +44,7 @@ async def get_recommendations(payload: QuestionnaireInput) -> RecommendationOutp
         f"app_type={payload.answers.get('app_type', 'unknown')} "
         f"scale={payload.answers.get('scale', 'unknown')}"
     )
+    log.log_info(f"Payload - \n{payload.answers}")
 
     try:
         # Run the blocking engine in a thread so the event loop stays free.

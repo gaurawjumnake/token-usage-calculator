@@ -4,12 +4,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 llm_azure = LLM(model="azure/gpt-4o",
-          api_key=os.getenv("AZURE_API_KEY"),
-          api_base=os.getenv("AZURE_API_BASE"),
-          api_version=os.getenv("AZURE_API_VERSION"),
+          api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+          api_base=os.getenv("AZURE_OPENAI_ENDPOINT"),
+          api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
           temperature=0.5,
           )
-
+ 
 # llm_gemini = LLM(
 #     model="gemini/gemini-2.5-flash",
 #     api_key=os.getenv("GEMINI_API_KEY"))
