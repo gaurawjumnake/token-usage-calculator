@@ -116,6 +116,8 @@ class StageRecommendation(BaseModel):
     ]
     models: StageModelTriple
     rationale: str    # 1–2 sentences on why this stage needs these models
+    workload_profile: dict[str, int] = Field(default_factory=dict)
+    estimated_cost_per_request: float = 0.0
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

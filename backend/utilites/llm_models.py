@@ -10,9 +10,9 @@ llm_azure = LLM(model="azure/gpt-4o",
           temperature=0.5,
           )
 
-llm_gemini = LLM(
-    model="gemini/gemini-2.5-flash",
-    api_key=os.getenv("GEMINI_API_KEY"))
+# llm_gemini = LLM(
+#     model="gemini/gemini-2.5-flash",
+#     api_key=os.getenv("GEMINI_API_KEY"))
 
 llm = llm_azure
 # llm = LLM(model="ollama/codellama:7b",

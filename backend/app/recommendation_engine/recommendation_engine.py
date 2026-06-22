@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import math
 import time
 import logging
 from datetime import datetime, timezone
@@ -11,11 +12,11 @@ from backend.app.recommendation_engine.output_schema_FINAL import (
     SDLC_STAGES,
 )
 from backend.app.recommendation_engine.tools_CREWAI import _get_catalog, _build_capabilities
-from backend.utilites.llm_models import llm_gemini
+from backend.utilites.llm_models import llm_azure
 from backend.utilites.app_logger import Logger
 log = Logger()
 
-llm = llm_gemini
+llm = llm_azure
 
 def _call_llm(system: str, user: str, label: str, max_retries: int = 3) -> str:
     for attempt in range(1, max_retries + 1):
@@ -127,15 +128,94 @@ def _run_analyzer(answers: dict, timestamp: str) -> dict:
 
 # STEP 2 — CATALOG MATCHER - Reads the pointers from Step 1, queries the in-memory catalog for each stage,
 
-def _score_model(model: dict, caps_required: list[str], min_ctx: int) -> float:
-    model_caps = _build_capabilities(model)
-    cap_score  = sum(1 for c in caps_required if c in model_caps) / max(len(caps_required), 1)
-    ctx_score  = min(1.0, model.get("context_length", 0) / max(min_ctx, 1))
-    pricing    = model.get("pricing", {})
-    inp  = float(pricing.get("prompt",     0)) * 1_000   # per-token → per-1K
-    out  = float(pricing.get("completion", 0)) * 1_000
-    cost_score = max(0.0, 1.0 - min(1.0, (inp + out) / 10.0))
-    return round((cap_score * 0.4 + ctx_score * 0.3 + cost_score * 0.3) * 100, 1)
+# Price ceiling for cost normalisation (per-1K tokens).
+# Real-world LLM prices range from ~$0.0001 to ~$0.75/1K.
+# Using $1.0 as the ceiling so cost_score is spread meaningfully.
+_COST_CEILING_PER_1K = 1.0
+
+
+def _get_model_family(model_id: str) -> str:
+    """Group model IDs into families for variety/diversity scoring."""
+    mid = model_id.lower()
+    if "gemini" in mid:
+        if "pro" in mid:
+            return "gemini-pro"
+        if "flash" in mid:
+            return "gemini-flash"
+        return "gemini"
+    if "claude" in mid:
+        if "opus" in mid:
+            return "claude-opus"
+        if "sonnet" in mid:
+            return "claude-sonnet"
+        if "haiku" in mid:
+            return "claude-haiku"
+        return "claude"
+    if "command" in mid:
+        return "command"
+    if "gpt-4" in mid:
+        return "gpt-4"
+    if "gpt-3.5" in mid:
+        return "gpt-3.5"
+    if "llama" in mid:
+        return "llama"
+    if "qwen" in mid:
+        return "qwen"
+    if "gemma" in mid:
+        return "gemma"
+    return mid.split("/")[-1].split(":")[0]
+
+
+def _score_model(
+    model: dict,
+    caps_required: list[str],
+    min_ctx: int,
+    used_models: set | None = None,
+    used_families: set | None = None,
+    used_providers: set | None = None,
+) -> float:
+    """
+    Score a model 0–100 for a given stage pointer.
+    """
+    model_caps  = _build_capabilities(model)
+    n_required  = max(len(caps_required), 1)
+
+    matched      = sum(1 for c in caps_required if c in model_caps)
+    cap_score    = matched / n_required
+
+    ctx          = model.get("context_length", 0)
+    if min_ctx <= 0:
+        ctx_score = 1.0
+    else:
+        ctx_score = min(1.0, math.log1p(ctx) / math.log1p(max(min_ctx * 4, ctx)))
+
+    pricing      = model.get("pricing", {})
+    inp_1k       = float(pricing.get("prompt",     0)) * 1_000
+    out_1k       = float(pricing.get("completion", 0)) * 1_000
+    total_1k     = inp_1k + out_1k
+    cost_score   = max(0.0, 1.0 - min(1.0, total_1k / 1.0))
+
+    tier         = _PROVIDER_TIER.get(model.get("provider", "").lower(), 3)
+    tier_score   = {1: 1.0, 2: 0.75}.get(tier, 0.5)
+
+    raw = (cap_score * 0.40 + ctx_score * 0.25 + cost_score * 0.25 + tier_score * 0.10)
+    
+    # Diversity penalties: heavily penalise repeating exact models or families
+    penalty = 1.0
+    model_id = model.get("model_id", "")
+    provider = model.get("provider", "").lower()
+    family = _get_model_family(model_id)
+
+    if used_models and model_id in used_models:
+        penalty *= 0.4
+    elif used_families and family in used_families:
+        penalty *= 0.6
+        
+    if used_providers and provider in used_providers:
+        # Mild penalty to encourage provider variety across stages
+        penalty *= 0.85
+
+    return round(raw * 100 * penalty, 1)
 
 # -- Provider quality tiers (used to filter catalog noise) ---------------------------
 # Tier 1: well-known providers with documented regional endpoints
@@ -278,6 +358,9 @@ def _shortlist_for_pointer(
     pointer: dict,
     per_tier: int = 5,
     privacy_regional: bool = False,
+    used_models: set | None = None,
+    used_families: set | None = None,
+    used_providers: set | None = None,
 ) -> dict:
     """
     Filter catalog for one stage pointer. Returns:
@@ -304,6 +387,10 @@ def _shortlist_for_pointer(
             if not all(c in model_caps for c in caps_req):
                 continue
 
+            # Privacy regional filter: restrict to Tier 1 & 2 providers
+            if privacy_regional and _provider_tier(model) > 2:
+                continue
+
             # Pricing (per-token → per-1K)
             pricing = model.get("pricing", {})
             inp = float(pricing.get("prompt",     0)) * 1_000
@@ -316,7 +403,7 @@ def _shortlist_for_pointer(
                 "context_length": model.get("context_length", 0),
                 "pricing":        {"input_per_1k": round(inp, 6), "output_per_1k": round(out, 6)},
                 "capabilities":   sorted(model_caps),
-                "score":          _score_model(model, caps_req, ctx),
+                "score":          _score_model(model, caps_req, ctx, used_models, used_families, used_providers),
             }
 
             # Strip meta-models and zero-cost entries immediately
@@ -361,11 +448,33 @@ def _shortlist_for_pointer(
 
 def _run_catalog_matcher(stage_pointers: dict, privacy_regional: bool = False) -> dict:
     result: dict[str, dict] = {}
+    used_models: set = set()
+    used_families: set = set()
+    used_providers: set = set()
+
     for stage in SDLC_STAGES:
         pointer = stage_pointers.get(stage, {})
+        shortlist = _shortlist_for_pointer(
+            pointer,
+            privacy_regional=privacy_regional,
+            used_models=used_models,
+            used_families=used_families,
+            used_providers=used_providers,
+        )
+        
+        # Track selected models, families, and providers so future stages avoid repeating them
+        for tier_model in shortlist.get("tiers", {}).values():
+            if isinstance(tier_model, dict) and "model_id" in tier_model:
+                mid = tier_model["model_id"]
+                used_models.add(mid)
+                used_families.add(_get_model_family(mid))
+                prov = tier_model.get("provider", "").lower()
+                if prov:
+                    used_providers.add(prov)
+
         result[stage] = {
             "pointer": pointer,
-            **_shortlist_for_pointer(pointer, privacy_regional=privacy_regional),  # ← add arg
+            **shortlist,
         }
 
     all_caps = list({c for p in stage_pointers.values() for c in p.get("capabilities", [])})
@@ -374,7 +483,7 @@ def _run_catalog_matcher(stage_pointers: dict, privacy_regional: bool = False) -
         "pointer": {"capabilities": all_caps, "min_context_tokens": max_ctx},
         **_shortlist_for_pointer(
             {"capabilities": all_caps, "min_context_tokens": max_ctx},
-            privacy_regional=privacy_regional,   # ← add arg
+            privacy_regional=privacy_regional,
         ),
     }
     return result
@@ -383,32 +492,61 @@ def _run_catalog_matcher(stage_pointers: dict, privacy_regional: bool = False) -
 # STEP 3 — SYNTHESIZER - Receives the shortlisted candidates per stage and produces the full output.
 
 _SYNTHESIZER_SYSTEM = """
-You are an LLM selection expert and output assembler.
+You are an expert LLM architect. Your task is to analyse the user's specific problem
+statement and questionnaire answers to recommend the BEST-FIT models — not generic
+defaults. Every recommendation must be justified by concrete evidence from the
+questionnaire and the candidate model data provided.
 
 You will receive:
-  - app_summary      (from analyzer)
-  - stage_catalog    (shortlisted candidate models + pre-computed tier suggestions per stage)
+  - app_summary      (analyzer output — app type, complexity, agentic level, etc.)
+  - stage_catalog    (shortlisted candidate models + pre-scored tier suggestions per stage)
   - questionnaire    (original user answers)
 
-Your job: produce the final RecommendationOutput JSON in ONE pass.
+═══════════════════════════════════════════════════════════════
+SELECTION RULES (MANDATORY — violating any rule is an error):
+═══════════════════════════════════════════════════════════════
+1. USE ONLY model_ids that appear in the provided candidate list for each stage.
+   Do NOT invent or hallucinate model IDs.
 
-SELECTION RULES:
-  recommended - best capability match, balanced cost/quality
-  budget      - meets required caps, lowest cost, score > 50
-  premium     - best reasoning/context quality, cost secondary
-  All three must be DIFFERENT model_ids within each stage.
-  Use ONLY model_ids present in the provided candidate lists.
-  If a tier suggestion is provided use it unless you have a clear reason to override.
+2. Within each stage, the three tier picks MUST be DIFFERENT model_ids AND from
+   DIFFERENT providers where at least 3 providers are available.
 
-PRIVACY RULE: If questionnaire includes "Data must stay in our region",
-do NOT select meta-router model_ids ("auto", routing-only models).
-Prefer providers with documented regional endpoints (Anthropic, Google, Azure OpenAI).  
+3. Tier logic driven by questionnaire context:
+   • recommended — highest capability-to-cost ratio for THIS specific use case.
+     If the user is cost-conscious, prefer cheaper models; if quality-first, prefer
+     high-reasoning models regardless of cost.
+   • budget      — CHEAPEST model that still meets the stage's required capabilities
+     (input_per_1k + output_per_1k should be lower than recommended).
+   • premium     — BEST quality for the stage's core task (largest context if the
+     stage is context-heavy; strongest reasoning if reasoning-heavy).
 
-DIVERSITY RULE: The three tiers (recommended/budget/premium) within each stage
-SHOULD come from different providers where candidates allow. Do not pick the same
-provider for all three tiers unless fewer than 3 providers passed the filters.
+4. STAGE-SPECIFIC DIFFERENTIATION — each stage has different priorities:
+   • Requirements, Documentation: prioritise long_context models.
+   • Architecture, Code Review:   prioritise reasoning models.
+   • Development, Testing:        prioritise tools + structured_output models.
+   • Deployment, Maintenance:     prioritise tools + reliability (Tier-1 providers).
+   Do NOT pick the same model for all 8 stages; vary selections based on stage role.
 
-OUTPUT SCHEMA — return ONLY this JSON, no preamble:
+5. QUESTIONNAIRE-DRIVEN OVERRIDES:
+   • If agentic_level = "Fully Agentic": prioritise tool-calling models across all stages.
+   • If priority = "Cost-conscious" or budget < $1,000: choose cheapest that qualify.
+   • If priority = "Quality-first" or budget > $10,000: choose highest-reasoning models.
+   • If privacy includes "Data must stay in our region": restrict to Tier-1 providers
+     (Anthropic, Google, Azure, Mistral, Cohere) only.
+   • If context_size = "Large" or "Very Large": prefer models with context > 128K.
+   • If scale = "Enterprise": prefer Tier-1 providers with SLA guarantees.
+
+6. The pre-computed tier suggestions in stage_catalog.tiers are starting points.
+   Override them if questionnaire context clearly warrants a different pick, and
+   document why in the corresponding _why field.
+
+7. The "why" fields must reference SPECIFIC factors: model name, price, capability,
+   context window size, or provider. Generic text like "best for this stage" is
+   NOT acceptable.
+
+═══════════════════════════════════════════════════════════════
+OUTPUT SCHEMA — return ONLY valid JSON, no preamble or markdown:
+═══════════════════════════════════════════════════════════════
 {
   "schema_version": "2.0",
   "generated_at": "<filled by system>",
@@ -439,9 +577,9 @@ OUTPUT SCHEMA — return ONLY this JSON, no preamble:
   },
 
   "single_model_recommendations": [
-    {"category": "recommended", "model_id": "...", "why": "...", "tradeoffs": "..."},
-    {"category": "budget",      "model_id": "...", "why": "...", "tradeoffs": "..."},
-    {"category": "premium",     "model_id": "...", "why": "...", "tradeoffs": "..."}
+    {"category": "recommended", "model_id": "...", "why": "specific reason from questionnaire + model data", "tradeoffs": "..."},
+    {"category": "budget",      "model_id": "...", "why": "specific reason", "tradeoffs": "..."},
+    {"category": "premium",     "model_id": "...", "why": "specific reason", "tradeoffs": "..."}
   ],
 
   "stage_recommendations": [
@@ -451,21 +589,21 @@ OUTPUT SCHEMA — return ONLY this JSON, no preamble:
         "recommended_model_id": "...",
         "budget_model_id":      "...",
         "premium_model_id":     "...",
-        "recommended_why": "...",
-        "budget_why":      "...",
-        "premium_why":     "...",
+        "recommended_why": "model X chosen because [specific cap/price/context reason]",
+        "budget_why":      "model Y is cheapest at $Z/1K while meeting long_context requirement",
+        "premium_why":     "model Z has 1M-token context ideal for large requirements docs",
         "key_capability":  "long_context",
         "tradeoffs":       "..."
       },
-      "rationale": "1-2 sentences"
+      "rationale": "1-2 sentences specific to this stage and this questionnaire"
     },
-    { "stage_name": "Architecture",  "models": { ... }, "rationale": "..." },
-    { "stage_name": "Development",   "models": { ... }, "rationale": "..." },
-    { "stage_name": "Code Review",   "models": { ... }, "rationale": "..." },
-    { "stage_name": "Testing",       "models": { ... }, "rationale": "..." },
-    { "stage_name": "Documentation", "models": { ... }, "rationale": "..." },
-    { "stage_name": "Deployment",    "models": { ... }, "rationale": "..." },
-    { "stage_name": "Maintenance",   "models": { ... }, "rationale": "..." }
+    { "stage_name": "Architecture",  "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "reasoning", "tradeoffs": "..." }, "rationale": "..." },
+    { "stage_name": "Development",   "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "tools", "tradeoffs": "..." }, "rationale": "..." },
+    { "stage_name": "Code Review",   "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "reasoning", "tradeoffs": "..." }, "rationale": "..." },
+    { "stage_name": "Testing",       "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "structured_output", "tradeoffs": "..." }, "rationale": "..." },
+    { "stage_name": "Documentation", "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "long_context", "tradeoffs": "..." }, "rationale": "..." },
+    { "stage_name": "Deployment",    "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "tools", "tradeoffs": "..." }, "rationale": "..." },
+    { "stage_name": "Maintenance",   "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "tools", "tradeoffs": "..." }, "rationale": "..." }
   ],
 
   "architecture": {
@@ -473,26 +611,36 @@ OUTPUT SCHEMA — return ONLY this JSON, no preamble:
     "hosting_strategy": "Managed API|Cloud Marketplace|Self-Hosted",
     "agent_framework_recommendation": null,
     "framework_constraints": [],
-    "roles": [],
+    "roles": [
+      {
+        "role": "...",
+        "recommended_model_id": "...",
+        "budget_model_id": "...",
+        "premium_model_id": "...",
+        "reason": "..."
+      }
+    ],
     "notes": []
   },
 
   "optimisation_tips": [
-    {"impact": "high|medium|low", "title": "...", "detail": "..."}
+    {"impact": "high|medium|low", "title": "...", "detail": "specific actionable tip referencing model prices or capabilities"}
   ],
 
   "confidence": {
     "score": "high|medium|low",
-    "reason": "...",
-    "assumptions": ["..."]
+    "reason": "specific reason e.g. 'strong match between stated requirements and catalog'",
+    "assumptions": ["...", "..."]
   }
 }
 
-WORKLOAD ESTIMATION GUIDE:
-  avg_input_tokens:       Short→500, Medium→3000, Large→25000, Very Large→120000
+WORKLOAD ESTIMATION GUIDE (use to fill workload_profile):
+  avg_input_tokens:       Short(<10K)→500, Medium(10-50K)→3000, Large(50-200K)→25000, Very Large→120000
   avg_output_tokens:      Chatbot→300, Docs→1200, Code→1000, Data→500, Content→1500
-  avg_reasoning_tokens:   low→0, medium→1000, high→5000
-  complexity / latency must be exactly "low", "medium", or "high"
+  avg_reasoning_tokens:   low complexity→0, medium→1000, high→5000
+  complexity / latency_requirement must be exactly "low", "medium", or "high"
+  batch_eligible: true if latency_requirement is high (async OK)
+  cache_eligible: true if inputs are repetitive (RAG system prompts, etc.)
 """
 
 def _run_synthesizer(

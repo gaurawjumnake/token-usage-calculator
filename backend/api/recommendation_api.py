@@ -41,8 +41,8 @@ async def get_recommendations(payload: QuestionnaireInput) -> RecommendationOutp
     input_hash = payload.stable_hash()
     log.log_info(
         f"recommendation request | hash={input_hash} "
-        f"app_type={payload.answers['app_type']} "
-        f"scale={payload.answers['scale']}"
+        f"app_type={payload.answers.get('app_type', 'unknown')} "
+        f"scale={payload.answers.get('scale', 'unknown')}"
     )
 
     try:
@@ -54,6 +54,13 @@ async def get_recommendations(payload: QuestionnaireInput) -> RecommendationOutp
         )
         log.log_info
         result = _get_extractor().infuse_model_pricing_data(result)
+        
+        if isinstance(result, dict) and "error" in result:
+            log.log_error(f"extractor failed | hash={input_hash} | error={result['error']}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to process recommendation pricing data.",
+            )
 
         log.log_info(f"recommendation generated | hash={input_hash}")
         return result #type:ignore
