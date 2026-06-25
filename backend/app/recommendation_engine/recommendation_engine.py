@@ -816,7 +816,7 @@ class RecommendationEngine:
 
 #     sample = QuestionnaireInput(answers={
 #         "app_type":          "Enterprise Knowledge Assistant",
-#         "app_description":   "Internal HR assistant. Answers policy Qs, summarises docs.",
+#         "app_description":   "use openai and anthropic models only",
 #         "context_size":      "Large",
 #         "latency":           "Fast",
 #         "scale":             "Enterprise",
@@ -833,4 +833,4 @@ class RecommendationEngine:
 
 #     print(sample)
 #     output = RecommendationEngine(verbose=True).run(sample)
-#     # print(json.dumps(output, indent=2, ensure_ascii=False))
+#     print(json.dumps(output, indent=2, ensure_ascii=False))

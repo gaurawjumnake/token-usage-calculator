@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from mangum import Mangum
 from backend.api.recommendation_api import router as recommendation_router
 from backend.api.questionare_api import router as questionare_router
 from backend.api.models_api import router as models_router
@@ -13,12 +13,12 @@ app = FastAPI(
     version="1.0.0"
 )
  
-origins = ["http://localhost", "http://localhost:8000", "http://localhost:8080"] 
+origins = ["*"] 
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
     
@@ -30,10 +30,14 @@ app.include_router(recommendation_router, prefix = prefix , tags=["Recommendatio
 app.include_router(questionare_router, prefix = prefix, tags=["Questionnaire"])
 app.include_router(models_router, prefix = prefix, tags=["Models"])
 log.log_info("All routers are up...")
+
+handler = Mangum(app, lifespan="auto")
+
 @app.get("/")
 def read_root():
     return {"status":200,
         "message": "Welcome to the Token Usage Calculator API"}
+
 
 @app.get("/health")
 def health_check():
