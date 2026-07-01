@@ -12,3 +12,6 @@ wheels/
 settings.config
 # Added by code-review-graph
 .code-review-graph/
+.claude
+.vscode
+CLAUDE.md
