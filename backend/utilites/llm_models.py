@@ -4,68 +4,37 @@ from dotenv import load_dotenv
 load_dotenv()
 
 llm_azure = LLM(model="azure/gpt-4o",
-          api_key=os.getenv("AZURE_API_KEY"),
-          api_base=os.getenv("AZURE_API_BASE"),
-          api_version=os.getenv("AZURE_API_VERSION"),
+          api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+          api_base=os.getenv("AZURE_OPENAI_ENDPOINT"),
+          api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
           temperature=0.5,
           )
+ 
+llm_gemini = LLM(
+    model="gemini/gemini-2.5-flash",
+    api_key=os.getenv("GEMINI_API_KEY"))
 
-# llm_gemini = LLM(
-#     model="gemini/gemini-2.5-flash",
-#     api_key=os.getenv("GEMINI_API_KEY"))
+def _check_llm(candidate: LLM) -> bool:
+    try:
+        candidate.call([{"role": "user", "content": "ping"}])
+        return True
+    except Exception:
+        return False
 
-llm = llm_azure
+def _resolve_llm() -> LLM:
+    for candidate in [llm_gemini, llm_azure]:
+        if _check_llm(candidate):
+            print(f"[llm_models] Using model: {candidate.model}")
+            return candidate
+    raise RuntimeError("No LLM available — check API keys and connectivity.")
+
+llm = _resolve_llm()
+
 # llm = LLM(model="ollama/codellama:7b",
 #           base_url="http://localhost:11434")
 
 # Sample code to test llm ############################################
 
-from crewai import Agent, Task, Crew
-
-data_analyst = Agent(
-    role='Graph Database Analyst',
-    goal='Analyze and query graph data stored in Neo4j database',
-    backstory="""You are an expert graph database analyst with deep knowledge of 
-    Cypher query language and Neo4j operations. You can efficiently retrieve, 
-    analyze, and interpret complex graph data patterns.""",
-    # tools=[neo4j_tool],
-    llm=llm,
-    verbose=True
-)
-
-# Example tasks
-def create_sample_data_task():
-    return Task(
-        description="""Create sample data in the Neo4j database. Create nodes for:
-        - 3 Person nodes with properties: name, age, city
-        - 2 Company nodes with properties: name, industry
-        - Create relationships between people and companies (WORKS_FOR)
-        - Create relationships between people (KNOWS)
-        
-        Use appropriate Cypher CREATE statements.""",
-        agent=data_analyst,
-        expected_output="Confirmation that sample data has been created successfully"
-    )
-
-def run_crew():
-    crew = Crew(
-        agents=[data_analyst],
-        tasks=[
-            create_sample_data_task(),
-            # query_data_task(),
-            # analyze_patterns_task()
-        ],
-        verbose=True
-    )
-    
-    result = crew.kickoff()
-    return result
-
-# if __name__ == "__main__":    
-#     print("Starting CrewAI with Neo4j integration...")
-#     result = run_crew()
-#     print("\nFinal Result:")
-#     print(result)
 
 
 

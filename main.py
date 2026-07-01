@@ -41,14 +41,21 @@ app.include_router(recommendation_router, prefix = prefix , tags=["Recommendatio
 app.include_router(questionare_router, prefix = prefix, tags=["Questionnaire"])
 app.include_router(models_router, prefix = prefix, tags=["Models"])
 log.log_info("All routers are up...")
+
 @app.get("/")
 def read_root():
     return {"status":200,
         "message": "Welcome to the Token Usage Calculator API"}
 
+
 @app.get("/health")
 def health_check():
     return {"status":200}
+
+from mangum import Mangum
+handler = Mangum(app, lifespan="auto")
+
+
 
 if __name__ == "__main__":
     import uvicorn

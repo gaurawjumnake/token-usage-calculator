@@ -121,30 +121,37 @@ class ModelDataExtractor:
 
             payload["pricing_information"] = pricing_information
 
-            # Calculate cost per stage based on recommended_model_id pricing
-            global_wp = payload.get("workload_profile", {})
+            # Calculate cost per stage using per-stage workload_profile token counts
             for stage in payload.get("stage_recommendations", []):
                 if not isinstance(stage, dict):
                     continue
-                
+
                 models = stage.get("models", {})
                 if not isinstance(models, dict):
                     continue
-                
+
                 rec_id = models.get("recommended_model_id")
-                if rec_id and global_wp:
-                    # Find pricing for the recommended model
-                    pricing = next((p["pricing"] for p in pricing_information if p["model_id"] == rec_id), None)
-                    if pricing:
-                        in_toks = float(global_wp.get("avg_input_tokens", 0)) + float(global_wp.get("avg_reasoning_tokens", 0))
-                        out_toks = float(global_wp.get("avg_output_tokens", 0))
-                        
-                        in_cost = (in_toks / 1000.0) * pricing.get("input_per_1k_tokens", 0.0)
-                        out_cost = (out_toks / 1000.0) * pricing.get("output_per_1k_tokens", 0.0)
-                        
-                        stage["estimated_cost_per_request"] = round(in_cost + out_cost, 6)
-                    else:
-                        stage["estimated_cost_per_request"] = 0.0
+                if not rec_id:
+                    continue
+
+                pricing = next((p["pricing"] for p in pricing_information if p["model_id"] == rec_id), None)
+                if pricing:
+                    stage_wp = stage.get("workload_profile", {})
+                    in_toks  = float(stage_wp.get("avg_input_tokens",     0)) + float(stage_wp.get("avg_reasoning_tokens", 0))
+                    out_toks = float(stage_wp.get("avg_output_tokens",    0))
+                    in_cost  = (in_toks  / 1000.0) * pricing.get("input_per_1k_tokens",  0.0)
+                    out_cost = (out_toks / 1000.0) * pricing.get("output_per_1k_tokens", 0.0)
+                    stage["estimated_cost_per_request"] = round(in_cost + out_cost, 6)
+                    stage["_cost_breakdown"] = {
+                        "input_tokens":     int(in_toks),
+                        "output_tokens":    int(out_toks),
+                        "input_cost":       round(in_cost,  8),
+                        "output_cost":      round(out_cost, 8),
+                        "input_per_1k":     pricing.get("input_per_1k_tokens",  0.0),
+                        "output_per_1k":    pricing.get("output_per_1k_tokens", 0.0),
+                    }
+                else:
+                    stage["estimated_cost_per_request"] = 0.0
 
             return payload
 

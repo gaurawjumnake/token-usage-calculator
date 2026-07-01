@@ -160,6 +160,7 @@ class RecommendationOutput_API(BaseModel):
     confidence: ConfidenceBlock
     stage_recommendations: list[StageRecommendation] = Field(default_factory=list)
     pricing_information: list[dict[str, Any]] = Field(default_factory=list)
+    reasoning_md: Optional[str] = None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

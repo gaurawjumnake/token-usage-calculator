@@ -52,12 +52,63 @@ def _parse_json(text: str, label: str) -> dict:
     except json.JSONDecodeError as e:
         raise ValueError(f"[{label}] bad JSON: {e}\n\nRaw:\n{t}") from e
 
-# STEP 1 — ANALYZER - Produces capability pointers for the overall project + each SDLC stage.
+# STEP 1 — ANALYZER - Produces capability pointers for the overall project + each SDLC stage,
+# AND extracts all structured constraints/overrides from the free-text app_description.
 
 _ANALYZER_SYSTEM = """
-You are an AI requirements analyst. Analyze the questionnaire and output ONE JSON
-object describing what LLM capabilities are needed — for the OVERALL project and
-for each of the 8 SDLC stages individually.
+You are an AI requirements analyst. Your job has TWO parts:
+
+PART A — EXTRACT EVERYTHING FROM app_description (do this FIRST)
+  app_description is a free-text field. The user may have written anything there:
+  specific model names, usage metrics, team structures, token volumes, domain context,
+  or constraints. You must read it carefully and extract ALL structured information
+  into the "description_extracts" section of your output.
+
+  Extract the following if present — leave fields null/empty if not mentioned:
+
+  1. MODEL / PROVIDER CONSTRAINTS
+     Look for any statement about which models or providers to use.
+     This can be phrased many ways:
+       "use gpt 4o and claude sonnet only"
+       "only gemini models"
+       "we want anthropic and openai"
+       "restrict to azure-hosted models"
+       "use claude-sonnet-4-6, gpt-4o and gemini-1.5-flash"
+     If found → set has_model_constraint: true, list providers and model hints.
+     If NOT found → has_model_constraint: false, empty lists.
+
+  2. TOKEN VOLUME OVERRIDES
+     Look for specific numbers about token usage per call/workflow/request.
+     Examples:
+       "average input tokens per workflow: 120,000"
+       "each request sends ~50K tokens"
+       "output is always under 2K tokens"
+     If found → set has_token_override: true and fill avg_input_tokens / avg_output_tokens.
+     These OVERRIDE the default token estimate table below.
+
+  3. USAGE SCALE OVERRIDES
+     Look for numbers about users, teams, requests, executions per day/month.
+     Examples:
+       "10 teams of 40 people each"
+       "1,000 workflow executions per day"
+       "22 working days per month → 22,000 executions/month"
+     If found → set has_scale_override: true and fill the fields.
+
+  4. DOMAIN / CAPABILITY SIGNALS
+     Keywords that imply LLM capabilities:
+       "images / diagrams / screenshots" → vision
+       "calls external APIs / functions" → tools
+       "chain-of-thought / reasoning"   → reasoning
+       "JSON output / structured data"  → structured_output
+       "large documents / PDFs / books" → long_context
+       "very large corpora (>200K tks)" → very_long_context
+
+PART B — ANALYZE CAPABILITIES AND TOKEN ESTIMATES
+  Using BOTH the structured questionnaire answers AND the extracts from Part A,
+  produce capability pointers for all 8 SDLC stages and token estimates.
+  If description_extracts.has_token_override is true, use those token numbers as
+  the base for all stages (scale per stage as appropriate) instead of the defaults.
+  If description_extracts.has_scale_override is true, reflect scale in app_summary.
 
 CAPABILITY VOCABULARY (use only these exact strings):
   "vision"             must understand images / diagrams
@@ -76,11 +127,38 @@ CONTEXT SIZES → min_context_tokens:
 BUDGET FOCUS:
   cost-conscious | balanced | quality-first
 
+TOKEN ESTIMATE DEFAULTS (use only if description has no token override):
+  Requirements:  input 4000–20000  output 500–2000
+  Architecture:  input 3000–10000  output 800–3000
+  Development:   input 2000–8000   output 500–2000
+  Code Review:   input 3000–12000  output 500–1500
+  Testing:       input 2000–6000   output 500–2000
+  Documentation: input 5000–30000  output 1000–5000
+  Deployment:    input 1000–4000   output 300–1000
+  Maintenance:   input 2000–8000   output 300–1000
+  Scale up if context_size = Large or Very Large.
+
 OUTPUT FORMAT — return ONLY this JSON, no preamble or explanation:
 {
+  "description_extracts": {
+    "has_model_constraint": false,
+    "preferred_providers": [],
+    "preferred_model_hints": [],
+    "constraint_source": "exact quote from app_description that stated the constraint, or empty string",
+    "has_token_override": false,
+    "avg_input_tokens_override": null,
+    "avg_output_tokens_override": null,
+    "token_override_source": "exact quote, or empty string",
+    "has_scale_override": false,
+    "daily_executions": null,
+    "monthly_executions": null,
+    "active_users": null,
+    "scale_override_source": "exact quote, or empty string",
+    "domain_capability_signals": []
+  },
   "app_summary": {
     "type": "<one of 7 app types>",
-    "description": "2-3 sentences",
+    "description": "2-3 sentences referencing app_description if present",
     "complexity": "low|medium|high",
     "budget_focus": "cost-conscious|balanced|quality-first",
     "min_context_tokens": 32000,
@@ -97,16 +175,26 @@ OUTPUT FORMAT — return ONLY this JSON, no preamble or explanation:
       "rationale": "one sentence"
     },
     "Architecture":  { "capabilities": [...], "min_context_tokens": ..., "complexity": "...", "rationale": "..." },
-    "Development":   { ... },
-    "Code Review":   { ... },
-    "Testing":       { ... },
-    "Documentation": { ... },
-    "Deployment":    { ... },
-    "Maintenance":   { ... }
+    "Development":   { "capabilities": [...], "min_context_tokens": ..., "complexity": "...", "rationale": "..." },
+    "Code Review":   { "capabilities": [...], "min_context_tokens": ..., "complexity": "...", "rationale": "..." },
+    "Testing":       { "capabilities": [...], "min_context_tokens": ..., "complexity": "...", "rationale": "..." },
+    "Documentation": { "capabilities": [...], "min_context_tokens": ..., "complexity": "...", "rationale": "..." },
+    "Deployment":    { "capabilities": [...], "min_context_tokens": ..., "complexity": "...", "rationale": "..." },
+    "Maintenance":   { "capabilities": [...], "min_context_tokens": ..., "complexity": "...", "rationale": "..." }
+  },
+  "stage_token_estimates": {
+    "Requirements":  { "avg_input_tokens": 8000,  "avg_output_tokens": 1200 },
+    "Architecture":  { "avg_input_tokens": 5000,  "avg_output_tokens": 1500 },
+    "Development":   { "avg_input_tokens": 4000,  "avg_output_tokens": 1000 },
+    "Code Review":   { "avg_input_tokens": 6000,  "avg_output_tokens": 800  },
+    "Testing":       { "avg_input_tokens": 3500,  "avg_output_tokens": 900  },
+    "Documentation": { "avg_input_tokens": 12000, "avg_output_tokens": 2500 },
+    "Deployment":    { "avg_input_tokens": 2000,  "avg_output_tokens": 500  },
+    "Maintenance":   { "avg_input_tokens": 4000,  "avg_output_tokens": 600  }
   }
 }
 
-STAGE DEFAULTS (override only if questionnaire implies otherwise):
+STAGE DEFAULTS (override only if questionnaire or app_description implies otherwise):
   Requirements:  long_context, structured_output
   Architecture:  reasoning, structured_output
   Development:   tools, structured_output
@@ -117,14 +205,45 @@ STAGE DEFAULTS (override only if questionnaire implies otherwise):
   Maintenance:   tools, reasoning
 """
 
+
 def _run_analyzer(answers: dict, timestamp: str) -> dict:
+    app_desc = answers.get("app_description", "")
+    desc_block = f"\nAPP DESCRIPTION:\n{app_desc}\n" if app_desc else ""
     user = (
-        f"QUESTIONNAIRE:\n{json.dumps(answers, indent=2)}\n\n"
+        f"QUESTIONNAIRE:\n{json.dumps(answers, indent=2)}\n"
+        f"{desc_block}"
         f"TIMESTAMP: {timestamp}\n\n"
+        "Complete PART A first (extract everything from app_description into description_extracts),\n"
+        "then complete PART B (capabilities and token estimates).\n"
         "Return ONLY the JSON object."
     )
     raw = _call_llm(_ANALYZER_SYSTEM, user, "Analyzer")
-    return _parse_json(raw, "Analyzer")
+    result = _parse_json(raw, "Analyzer")
+
+    de = result.get("description_extracts", {})
+    if de.get("has_model_constraint"):
+        log.log_info(
+            f"Analyzer found model constraint: "
+            f"providers={de.get('preferred_providers')} "
+            f"hints={de.get('preferred_model_hints')} "
+            f"source='{de.get('constraint_source')}'"
+        )
+    if de.get("has_token_override"):
+        log.log_info(
+            f"Analyzer found token override: "
+            f"input={de.get('avg_input_tokens_override')} "
+            f"output={de.get('avg_output_tokens_override')} "
+            f"source='{de.get('token_override_source')}'"
+        )
+    if de.get("has_scale_override"):
+        log.log_info(
+            f"Analyzer found scale override: "
+            f"daily={de.get('daily_executions')} "
+            f"monthly={de.get('monthly_executions')} "
+            f"users={de.get('active_users')}"
+        )
+    return result
+
 
 # STEP 2 — CATALOG MATCHER - Reads the pointers from Step 1, queries the in-memory catalog for each stage,
 
@@ -361,6 +480,7 @@ def _shortlist_for_pointer(
     used_models: set | None = None,
     used_families: set | None = None,
     used_providers: set | None = None,
+    preferred_providers: list[str] | None = None,
 ) -> dict:
     """
     Filter catalog for one stage pointer. Returns:
@@ -440,13 +560,40 @@ def _shortlist_for_pointer(
     # Diversify AFTER the ladder has produced a final result list
     results = _diversify(results, max_per_provider=3)
 
+    # Hard-filter to preferred providers so the synthesizer LLM only sees those models.
+    # Fallback ladder: if filtering leaves < 3 candidates, progressively widen.
+    if preferred_providers:
+        preferred_set = {p.lower() for p in preferred_providers}
+        filtered = [m for m in results if m["provider"].lower() in preferred_set]
+        if len(filtered) >= 3:
+            results = filtered
+        else:
+            # Not enough preferred-provider models — include all but put preferred first
+            preferred_first = [m for m in results if m["provider"].lower() in preferred_set]
+            others          = [m for m in results if m["provider"].lower() not in preferred_set]
+            results = preferred_first + others
+            if preferred_first:
+                log.log_warning(
+                    f"preferred_providers filter left only {len(preferred_first)} model(s); "
+                    "including all providers as fallback but preferred models are ranked first."
+                )
+            else:
+                log.log_warning(
+                    "preferred_providers filter matched 0 models for this stage; "
+                    "falling back to full catalog."
+                )
+
     candidates = results[: per_tier * 3]        # top 15
     tiers      = _pick_tier(results[:20], privacy_regional=privacy_regional)
 
     return {"candidates": candidates, "tiers": tiers}
 
 
-def _run_catalog_matcher(stage_pointers: dict, privacy_regional: bool = False) -> dict:
+def _run_catalog_matcher(
+    stage_pointers: dict,
+    privacy_regional: bool = False,
+    preferred_providers: list[str] | None = None,
+) -> dict:
     result: dict[str, dict] = {}
     used_models: set = set()
     used_families: set = set()
@@ -460,6 +607,7 @@ def _run_catalog_matcher(stage_pointers: dict, privacy_regional: bool = False) -
             used_models=used_models,
             used_families=used_families,
             used_providers=used_providers,
+            preferred_providers=preferred_providers,
         )
         
         # Track selected models, families, and providers so future stages avoid repeating them
@@ -484,6 +632,7 @@ def _run_catalog_matcher(stage_pointers: dict, privacy_regional: bool = False) -
         **_shortlist_for_pointer(
             {"capabilities": all_caps, "min_context_tokens": max_ctx},
             privacy_regional=privacy_regional,
+            preferred_providers=preferred_providers,
         ),
     }
     return result
@@ -498,9 +647,10 @@ defaults. Every recommendation must be justified by concrete evidence from the
 questionnaire and the candidate model data provided.
 
 You will receive:
-  - app_summary      (analyzer output — app type, complexity, agentic level, etc.)
-  - stage_catalog    (shortlisted candidate models + pre-scored tier suggestions per stage)
-  - questionnaire    (original user answers)
+  - app_summary           (analyzer output — app type, complexity, agentic level, etc.)
+  - stage_token_estimates (per-stage avg_input/output_tokens from the analyzer)
+  - stage_catalog         (shortlisted candidate models + pre-scored tier suggestions per stage)
+  - questionnaire         (original user answers including app_description free-text)
 
 ═══════════════════════════════════════════════════════════════
 SELECTION RULES (MANDATORY — violating any rule is an error):
@@ -543,6 +693,29 @@ SELECTION RULES (MANDATORY — violating any rule is an error):
 7. The "why" fields must reference SPECIFIC factors: model name, price, capability,
    context window size, or provider. Generic text like "best for this stage" is
    NOT acceptable.
+
+8. PROVIDER PREFERENCE (injected at runtime — check PROVIDER CONSTRAINT block below):
+   If the user specified preferred providers, you MUST pick ONLY model_ids whose
+   provider matches the list. This overrides rules 2–6 for provider diversity.
+   If a stage's candidate list contains no model from a preferred provider, use the
+   highest-scored available model and note the fallback in the corresponding _why field.
+   Never invent a model_id to satisfy this rule — only use IDs present in candidates.
+
+9. APP DESCRIPTION MODEL CONSTRAINTS (HIGHEST PRIORITY — overrides all other rules):
+   Before selecting any model, READ app_description in full. If it explicitly names
+   specific models or providers (e.g. "use gpt 4o and claude sonnet 4.6 only",
+   "use only gemini flash", "restrict to anthropic and openai models"), this is a
+   HARD CONSTRAINT that takes precedence over rules 1–8:
+   • Every recommended_model_id, budget_model_id, and premium_model_id across ALL
+     8 stages MUST come from the named models or providers only.
+   • If multiple models from the same constraint set are available for a stage, vary
+     within that set (e.g. different claude tiers: haiku/sonnet/opus).
+   • If only one provider is available in the candidate list for a stage, use 3
+     different models from that provider if available; otherwise repeat the best one
+     and note the limitation in the _why field.
+   • Always quote the exact phrase from app_description that defines the constraint
+     in at least one _why field per stage so the user knows it was honoured.
+   • NEVER pick a model outside the constraint set even if it scores higher.
 
 ═══════════════════════════════════════════════════════════════
 OUTPUT SCHEMA — return ONLY valid JSON, no preamble or markdown:
@@ -595,15 +768,20 @@ OUTPUT SCHEMA — return ONLY valid JSON, no preamble or markdown:
         "key_capability":  "long_context",
         "tradeoffs":       "..."
       },
+      "workload_profile": {
+        "avg_input_tokens":     8000,
+        "avg_output_tokens":    1200,
+        "avg_reasoning_tokens": 0
+      },
       "rationale": "1-2 sentences specific to this stage and this questionnaire"
     },
-    { "stage_name": "Architecture",  "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "reasoning", "tradeoffs": "..." }, "rationale": "..." },
-    { "stage_name": "Development",   "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "tools", "tradeoffs": "..." }, "rationale": "..." },
-    { "stage_name": "Code Review",   "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "reasoning", "tradeoffs": "..." }, "rationale": "..." },
-    { "stage_name": "Testing",       "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "structured_output", "tradeoffs": "..." }, "rationale": "..." },
-    { "stage_name": "Documentation", "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "long_context", "tradeoffs": "..." }, "rationale": "..." },
-    { "stage_name": "Deployment",    "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "tools", "tradeoffs": "..." }, "rationale": "..." },
-    { "stage_name": "Maintenance",   "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "tools", "tradeoffs": "..." }, "rationale": "..." }
+    { "stage_name": "Architecture",  "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "reasoning", "tradeoffs": "..." }, "workload_profile": { "avg_input_tokens": 5000, "avg_output_tokens": 1500, "avg_reasoning_tokens": 1000 }, "rationale": "..." },
+    { "stage_name": "Development",   "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "tools", "tradeoffs": "..." }, "workload_profile": { "avg_input_tokens": 4000, "avg_output_tokens": 1000, "avg_reasoning_tokens": 500 }, "rationale": "..." },
+    { "stage_name": "Code Review",   "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "reasoning", "tradeoffs": "..." }, "workload_profile": { "avg_input_tokens": 6000, "avg_output_tokens": 800, "avg_reasoning_tokens": 1000 }, "rationale": "..." },
+    { "stage_name": "Testing",       "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "structured_output", "tradeoffs": "..." }, "workload_profile": { "avg_input_tokens": 3500, "avg_output_tokens": 900, "avg_reasoning_tokens": 500 }, "rationale": "..." },
+    { "stage_name": "Documentation", "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "long_context", "tradeoffs": "..." }, "workload_profile": { "avg_input_tokens": 12000, "avg_output_tokens": 2500, "avg_reasoning_tokens": 0 }, "rationale": "..." },
+    { "stage_name": "Deployment",    "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "tools", "tradeoffs": "..." }, "workload_profile": { "avg_input_tokens": 2000, "avg_output_tokens": 500, "avg_reasoning_tokens": 0 }, "rationale": "..." },
+    { "stage_name": "Maintenance",   "models": { "recommended_model_id": "...", "budget_model_id": "...", "premium_model_id": "...", "recommended_why": "...", "budget_why": "...", "premium_why": "...", "key_capability": "tools", "tradeoffs": "..." }, "workload_profile": { "avg_input_tokens": 4000, "avg_output_tokens": 600, "avg_reasoning_tokens": 500 }, "rationale": "..." }
   ],
 
   "architecture": {
@@ -641,30 +819,111 @@ WORKLOAD ESTIMATION GUIDE (use to fill workload_profile):
   complexity / latency_requirement must be exactly "low", "medium", or "high"
   batch_eligible: true if latency_requirement is high (async OK)
   cache_eligible: true if inputs are repetitive (RAG system prompts, etc.)
+
+STAGE TOKEN ESTIMATION RULES:
+  Use the stage_token_estimates provided by the analyzer as your primary source.
+  Override only if the questionnaire or app_description clearly implies different volumes.
+  Each stage's workload_profile MUST contain:
+    "avg_input_tokens"     — tokens consumed per LLM call at this stage
+    "avg_output_tokens"    — tokens generated per LLM call at this stage
+    "avg_reasoning_tokens" — additional chain-of-thought tokens (0 for non-reasoning stages)
+  These values feed directly into cost projection calculations — be realistic, not minimal.
+
+APP DESCRIPTION USAGE:
+  Read app_description carefully. Extract domain, data volumes, and interaction patterns.
+  Use this to justify any overrides of the analyzer's token estimates or capability choices.
+  Reference specific phrases from app_description in your rationale and why fields.
 """
 
 def _run_synthesizer(
     app_summary: dict,
     stage_catalog: dict,
+    stage_token_estimates: dict,
     questionnaire: dict,
     input_hash: str,
     timestamp: str,
+    preferred_providers: list[str] | None = None,
+    description_extracts: dict | None = None,
 ) -> dict:
+    de = description_extracts or {}
+
     # Build a compact catalog payload — tiers + top-5 candidates per stage
     compact_catalog: dict[str, Any] = {}
     for stage, data in stage_catalog.items():
         compact_catalog[stage] = {
             "pointer":    data["pointer"],
-            "tiers":      data["tiers"],          # pre-computed R/B/P suggestions
-            "candidates": data["candidates"][:5], # top 5 for LLM to reason over
+            "tiers":      data["tiers"],
+            "candidates": data["candidates"][:5],
         }
+
+    app_desc = questionnaire.get("app_description", "")
+    desc_block = f"\nAPP DESCRIPTION:\n{app_desc}\n" if app_desc else ""
+
+    # Provider constraint block — shown whenever the catalog was filtered by provider
+    if preferred_providers:
+        provider_block = (
+            f"\nPROVIDER CONSTRAINT (MANDATORY — see Rules #8 and #9):\n"
+            f"Model selection is restricted to these providers ONLY: "
+            f"{json.dumps(preferred_providers)}\n"
+            f"Every recommended_model_id, budget_model_id, and premium_model_id across all "
+            f"8 stages MUST come from one of these providers. "
+            f"If a stage candidate list has no match, use the best available model and "
+            f"state 'no preferred-provider model available' in the _why field.\n"
+        )
+    else:
+        provider_block = ""
+
+    # Description extracts block — surfaces everything the Analyzer understood from
+    # app_description as explicit, labelled constraints so the Synthesizer cannot miss them.
+    extracts_parts: list[str] = []
+
+    if de.get("has_model_constraint"):
+        extracts_parts.append(
+            f"  MODEL CONSTRAINT (HARD — highest priority, overrides all other rules):\n"
+            f"    Source phrase : \"{de.get('constraint_source', '')}\"\n"
+            f"    Providers     : {json.dumps(de.get('preferred_providers', []))}\n"
+            f"    Model hints   : {json.dumps(de.get('preferred_model_hints', []))}\n"
+            f"    → Every stage, every tier MUST use only these models/providers.\n"
+            f"    → Quote the source phrase in at least one _why field per stage."
+        )
+
+    if de.get("has_token_override"):
+        extracts_parts.append(
+            f"  TOKEN VOLUMES (from app_description — use these, not defaults):\n"
+            f"    avg_input_tokens  : {de.get('avg_input_tokens_override')}\n"
+            f"    avg_output_tokens : {de.get('avg_output_tokens_override')}\n"
+            f"    Source phrase     : \"{de.get('token_override_source', '')}\"\n"
+            f"    → stage_token_estimates have already been updated with these values.\n"
+            f"    → Use them as-is for all workload_profile fields."
+        )
+
+    if de.get("has_scale_override"):
+        extracts_parts.append(
+            f"  USAGE SCALE (from app_description):\n"
+            f"    active_users        : {de.get('active_users')}\n"
+            f"    daily_executions    : {de.get('daily_executions')}\n"
+            f"    monthly_executions  : {de.get('monthly_executions')}\n"
+            f"    Source phrase       : \"{de.get('scale_override_source', '')}\"\n"
+            f"    → Use these numbers to populate workload_profile in the output."
+        )
+
+    extracts_block = (
+        "\nDESCRIPTION EXTRACTS (structured facts the Analyzer read from app_description):\n"
+        + "\n".join(extracts_parts)
+        + "\n"
+    ) if extracts_parts else ""
 
     user = (
         f"APP SUMMARY (from analyzer):\n{json.dumps(app_summary, indent=2)}\n\n"
+        f"STAGE TOKEN ESTIMATES (from analyzer):\n{json.dumps(stage_token_estimates, indent=2)}\n\n"
         f"STAGE CATALOG (shortlisted models per stage):\n{json.dumps(compact_catalog, indent=2)}\n\n"
-        f"ORIGINAL QUESTIONNAIRE:\n{json.dumps(questionnaire, indent=2)}\n\n"
+        f"ORIGINAL QUESTIONNAIRE:\n{json.dumps(questionnaire, indent=2)}\n"
+        f"{desc_block}"
+        f"{provider_block}"
+        f"{extracts_block}"
         f"generated_at: {timestamp}\n"
         f"input_hash: {input_hash}\n\n"
+        "Use stage_token_estimates to populate each stage's workload_profile.\n"
         "Return ONLY the final JSON object."
     )
     raw = _call_llm(_SYNTHESIZER_SYSTEM, user, "Synthesizer")
@@ -705,6 +964,14 @@ def _normalize_stage_recommendations(raw: Any) -> list[dict]:
         entry["models"]     = models
         entry["stage_name"] = stage
         entry.setdefault("rationale", "")
+        # Preserve per-stage token estimates; default to empty dict if LLM omitted them
+        wp = entry.get("workload_profile")
+        if not isinstance(wp, dict):
+            wp = {}
+        wp.setdefault("avg_input_tokens", 0)
+        wp.setdefault("avg_output_tokens", 0)
+        wp.setdefault("avg_reasoning_tokens", 0)
+        entry["workload_profile"] = wp
         result.append(entry)
     return result
 
@@ -761,8 +1028,373 @@ def _normalize(data: dict, input_hash: str, original_answers: dict) -> dict:
     data["stage_recommendations"] = _normalize_stage_recommendations(
         data.get("stage_recommendations", [])
     )
+
+    # Overwrite top-level token fields with the sum across all 8 stages.
+    # The LLM generates per-request averages for the overall profile which are
+    # typically understated; the ground truth is the aggregate of stage-level values.
+    stages = data["stage_recommendations"]
+    total_input     = sum(s.get("workload_profile", {}).get("avg_input_tokens",     0) for s in stages)
+    total_output    = sum(s.get("workload_profile", {}).get("avg_output_tokens",    0) for s in stages)
+    total_reasoning = sum(s.get("workload_profile", {}).get("avg_reasoning_tokens", 0) for s in stages)
+    if total_input > 0:
+        wp["avg_input_tokens"]     = total_input
+    if total_output > 0:
+        wp["avg_output_tokens"]    = total_output
+    if total_reasoning >= 0:
+        wp["avg_reasoning_tokens"] = total_reasoning
+
     return data
 
+
+
+# REASONING REPORT
+
+
+def _fmt(v: Any, decimals: int = 6) -> str:
+    if isinstance(v, float):
+        return f"{v:.{decimals}f}".rstrip("0").rstrip(".")
+    return str(v)
+
+
+def _build_reasoning_md(
+    answers: dict,
+    analysis: dict,
+    stage_catalog: dict,
+    output: dict,
+) -> str:
+    lines: list[str] = []
+
+    # ── Header ───────────────────────────────────────────────────────────────
+    lines += [
+        f"# LLM Recommendation Report",
+        f"Generated: {output.get('generated_at', '')}  |  Hash: `{output.get('input_hash', '')}`",
+        "",
+    ]
+
+    # ── 1. Questionnaire answers ──────────────────────────────────────────────
+    lines += ["## 1. Questionnaire Answers", ""]
+    ANSWER_LABELS: dict[str, str] = {
+        "app_type":             "App type",
+        "agentic_level":        "Agentic level",
+        "scale":                "Scale",
+        "priority":             "Priority",
+        "budget":               "Budget",
+        "context_size":         "Context size",
+        "privacy":              "Privacy requirements",
+        "provider_preferences": "Provider preferences",
+        "latency":              "Latency requirement",
+        "app_description":      "Free-text description",
+    }
+    lines.append("| Question | Answer |")
+    lines.append("|---|---|")
+    for key, label in ANSWER_LABELS.items():
+        val = answers.get(key)
+        if val is None:
+            continue
+        if isinstance(val, list):
+            val = ", ".join(str(v) for v in val) if val else "—"
+        lines.append(f"| {label} | {val} |")
+    lines.append("")
+
+    # ── 2. Analyzer interpretation ────────────────────────────────────────────
+    app_summary  = analysis.get("app_summary", {})
+    de           = analysis.get("description_extracts", {})
+    stage_ptrs   = analysis.get("stage_pointers", {})
+    stage_toks   = analysis.get("stage_token_estimates", {})
+
+    lines += ["## 2. How Answers Were Interpreted (Analyzer)", ""]
+
+    lines += ["### App Summary", ""]
+    lines.append("| Field | Value |")
+    lines.append("|---|---|")
+    for k, v in app_summary.items():
+        lines.append(f"| {k} | {v} |")
+    lines.append("")
+
+    if de:
+        lines += ["### Extracts from Free-Text Description", ""]
+        if de.get("has_model_constraint"):
+            lines.append(
+                f'- **Provider constraint** detected — source: *"{de.get("constraint_source", "")}"*'
+            )
+            lines.append(f'  - Providers enforced: `{", ".join(de.get("preferred_providers", []))}`')
+            hints = de.get("preferred_model_hints", [])
+            if hints:
+                lines.append(f'  - Model hints: `{", ".join(hints)}`')
+        if de.get("has_token_override"):
+            lines.append(
+                f'- **Token override** detected — source: *"{de.get("token_override_source", "")}"*'
+            )
+            lines.append(f'  - avg_input_tokens → `{de.get("avg_input_tokens_override")}`')
+            lines.append(f'  - avg_output_tokens → `{de.get("avg_output_tokens_override")}`')
+        if de.get("has_scale_override"):
+            lines.append(
+                f'- **Scale override** detected — source: *"{de.get("scale_override_source", "")}"*'
+            )
+            lines.append(f'  - active_users → `{de.get("active_users")}`')
+            lines.append(f'  - daily_executions → `{de.get("daily_executions")}`')
+            lines.append(f'  - monthly_executions → `{de.get("monthly_executions")}`')
+        if not any(de.get(k) for k in ("has_model_constraint", "has_token_override", "has_scale_override")):
+            lines.append("*No structured overrides extracted from description.*")
+        lines.append("")
+
+    lines += ["### Per-Stage Requirements", ""]
+    lines.append("| SDLC Stage | Capabilities Required | Min Context Window |")
+    lines.append("|---|---|---|")
+    for stage in SDLC_STAGES:
+        ptr = stage_ptrs.get(stage, {})
+        caps = ", ".join(ptr.get("capabilities", [])) or "—"
+        ctx  = f"{ptr.get('min_context_tokens', 0):,}"
+        lines.append(f"| {stage} | {caps} | {ctx} |")
+    lines.append("")
+
+    lines += ["### Token Estimates from Analyzer", ""]
+    lines.append("| SDLC Stage | Avg Input Tokens | Avg Output Tokens | Reasoning Tokens |")
+    lines.append("|---|---|---|---|")
+    for stage in SDLC_STAGES:
+        te = stage_toks.get(stage, {})
+        lines.append(
+            f"| {stage} "
+            f"| {te.get('avg_input_tokens', 0):,} "
+            f"| {te.get('avg_output_tokens', 0):,} "
+            f"| {te.get('avg_reasoning_tokens', 0):,} |"
+        )
+    lines.append("")
+
+    # ── 3. Model scoring ──────────────────────────────────────────────────────
+    lines += [
+        "## 3. Model Scoring (Catalog Matcher)",
+        "",
+        "**Scoring formula** (0–100, before diversity penalty):",
+        "",
+        "```",
+        "score = (cap_score × 0.40) + (ctx_score × 0.25) + (cost_score × 0.25) + (tier_score × 0.10)",
+        "",
+        "  cap_score   = capabilities_matched / capabilities_required",
+        "  ctx_score   = log(model_context) / log(max(min_ctx × 4, model_context))   [capped at 1.0]",
+        "  cost_score  = 1 − min(1, (input_per_1K + output_per_1K) / $1.00_ceiling)",
+        "  tier_score  = 1.0 (Tier-1 provider) | 0.75 (Tier-2) | 0.50 (Tier-3)",
+        "```",
+        "",
+        "Diversity penalties applied after scoring:",
+        "- Same model repeated across stages: ×0.40",
+        "- Same model family repeated: ×0.60",
+        "- Same provider repeated: ×0.85",
+        "",
+    ]
+
+    for stage in SDLC_STAGES:
+        cat   = stage_catalog.get(stage, {})
+        tiers = cat.get("tiers", {})
+        candidates = cat.get("candidates", [])
+        if not candidates:
+            continue
+        lines.append(f"### {stage}")
+        lines.append("")
+        lines.append("**Top candidates:**")
+        lines.append("")
+        lines.append("| Model | Score | Provider | Context |")
+        lines.append("|---|---|---|---|")
+        for c in candidates[:6]:
+            lines.append(
+                f"| `{c.get('model_id', '?')}` "
+                f"| {c.get('score', 0)} "
+                f"| {c.get('provider', '?')} "
+                f"| {c.get('context_length', 0):,} |"
+            )
+        lines.append("")
+        lines.append("**Tier picks:**")
+        lines.append("")
+        for tier_name, tm in tiers.items():
+            if isinstance(tm, dict):
+                lines.append(f"- **{tier_name}**: `{tm.get('model_id', '?')}` (score {tm.get('score', '?')})")
+        lines.append("")
+
+    # ── 4. Token calculations ─────────────────────────────────────────────────
+    lines += ["## 4. Token Calculations", ""]
+    stage_recs = output.get("stage_recommendations", [])
+    total_in = total_out = total_reason = 0
+
+    lines.append("| SDLC Stage | Avg Input | Avg Output | Avg Reasoning | Stage Total |")
+    lines.append("|---|---|---|---|---|")
+    for sr in stage_recs:
+        wp    = sr.get("workload_profile", {})
+        s_in  = wp.get("avg_input_tokens",     0)
+        s_out = wp.get("avg_output_tokens",    0)
+        s_rea = wp.get("avg_reasoning_tokens", 0)
+        total = s_in + s_out + s_rea
+        total_in     += s_in
+        total_out    += s_out
+        total_reason += s_rea
+        lines.append(
+            f"| {sr.get('stage_name', '?')} "
+            f"| {s_in:,} | {s_out:,} | {s_rea:,} | {total:,} |"
+        )
+    grand_total = total_in + total_out + total_reason
+    lines.append(
+        f"| **TOTAL** "
+        f"| **{total_in:,}** | **{total_out:,}** | **{total_reason:,}** | **{grand_total:,}** |"
+    )
+    lines.append("")
+    lines.append(
+        "> Total tokens per request = sum across all 8 SDLC stages. "
+        "This overrides the LLM's top-level workload_profile estimate."
+    )
+    lines.append("")
+
+    # ── 5. Cost calculations ──────────────────────────────────────────────────
+    lines += ["## 5. Cost Calculations (Recommended Model per Stage)", ""]
+    lines.append(
+        "**Formula:** `cost = (input_tokens / 1000 × $/1K_in) + (output_tokens / 1000 × $/1K_out)`"
+    )
+    lines.append("")
+    lines.append("| SDLC Stage | Model | $/1K in | $/1K out | Tokens in | Tokens out | Cost/request |")
+    lines.append("|---|---|---|---|---|---|---|")
+
+    total_cost_per_req = 0.0
+    for sr in stage_recs:
+        models    = sr.get("models", {})
+        rec_id    = models.get("recommended_model_id", "?")
+        cb        = sr.get("_cost_breakdown", {})
+        in_toks   = cb.get("input_tokens",  sr.get("workload_profile", {}).get("avg_input_tokens",  0))
+        out_toks  = cb.get("output_tokens", sr.get("workload_profile", {}).get("avg_output_tokens", 0))
+        in_1k     = cb.get("input_per_1k",  0.0)
+        out_1k    = cb.get("output_per_1k", 0.0)
+        cost      = sr.get("estimated_cost_per_request", 0.0)
+        total_cost_per_req += cost
+        lines.append(
+            f"| {sr.get('stage_name', '?')} "
+            f"| `{rec_id}` "
+            f"| ${_fmt(in_1k, 6)} "
+            f"| ${_fmt(out_1k, 6)} "
+            f"| {in_toks:,} "
+            f"| {out_toks:,} "
+            f"| ${_fmt(cost, 6)} |"
+        )
+    lines.append(
+        f"| **TOTAL** | | | | | | **${_fmt(total_cost_per_req, 6)}** |"
+    )
+    lines.append("")
+
+    # ── 5b. Projected usage costs ─────────────────────────────────────────────
+    wp_global = output.get("workload_profile", {})
+    active_users  = wp_global.get("active_users", 0)
+    req_per_user  = wp_global.get("requests_per_user_per_day", 0)
+    duration_mo   = wp_global.get("project_duration_months", 0)
+    cached_toks   = wp_global.get("avg_cached_tokens", 0)
+    cache_eligible = wp_global.get("cache_eligible", False)
+
+    if active_users and req_per_user and total_cost_per_req > 0:
+        daily_reqs  = active_users * req_per_user
+        daily_cost  = daily_reqs * total_cost_per_req
+        monthly_cost = daily_cost * 30
+        project_cost = monthly_cost * duration_mo if duration_mo else None
+
+        lines += ["### Projected Usage Costs", ""]
+        lines.append(
+            f"- **Daily requests:** {active_users:,} users × {req_per_user} req/user = **{daily_reqs:,} req/day**"
+        )
+        lines.append(f"- **Cost per request:** ${_fmt(total_cost_per_req, 6)}")
+        lines.append(f"- **Daily cost:** {daily_reqs:,} × ${_fmt(total_cost_per_req, 6)} = **${daily_cost:,.4f}**")
+        lines.append(f"- **Monthly cost (30 days):** **${monthly_cost:,.2f}**")
+        if project_cost is not None:
+            lines.append(f"- **Project total ({duration_mo} months):** **${project_cost:,.2f}**")
+
+        if cache_eligible and cached_toks > 0:
+            lines.append("")
+            lines.append(f"### Cache Savings Estimate")
+            lines.append("")
+            lines.append(
+                f"- {cached_toks:,} tokens cached per request (cache_eligible: true)"
+            )
+            lines.append(
+                "- Cache reads are typically ~10× cheaper than regular input tokens."
+            )
+            lines.append(
+                "- Implement prompt caching on repeated system-prompt / context prefixes "
+                "to reduce the effective input cost."
+            )
+        lines.append("")
+
+    # ── 6. Final selections ───────────────────────────────────────────────────
+    lines += ["## 6. Final Model Selections (Synthesizer)", ""]
+
+    smr = output.get("single_model_recommendations", [])
+    if smr:
+        lines += ["### Overall Single-Model Recommendations", ""]
+        lines.append("| Tier | Model | Why | Tradeoffs |")
+        lines.append("|---|---|---|---|")
+        for rec in smr:
+            lines.append(
+                f"| {rec.get('category', '?')} "
+                f"| `{rec.get('model_id', '?')}` "
+                f"| {rec.get('why', '')} "
+                f"| {rec.get('tradeoffs', '')} |"
+            )
+        lines.append("")
+
+    arch = output.get("architecture", {})
+    if arch:
+        lines += ["### Architecture", ""]
+        lines.append(f"- **Pattern:** {arch.get('pattern', '?')}")
+        lines.append(f"- **Hosting:** {arch.get('hosting_strategy', '?')}")
+        fw = arch.get("agent_framework_recommendation")
+        if fw:
+            lines.append(f"- **Framework:** {fw}")
+        constraints = arch.get("framework_constraints", [])
+        if constraints:
+            lines.append(f"- **Constraints:** {', '.join(constraints)}")
+        roles = arch.get("roles", [])
+        if roles:
+            lines.append("")
+            lines.append("**Roles:**")
+            lines.append("")
+            lines.append("| Role | Recommended | Budget | Premium | Reason |")
+            lines.append("|---|---|---|---|---|")
+            for r in roles:
+                lines.append(
+                    f"| {r.get('role', '?')} "
+                    f"| `{r.get('recommended_model_id', '?')}` "
+                    f"| `{r.get('budget_model_id', '?')}` "
+                    f"| `{r.get('premium_model_id', '?')}` "
+                    f"| {r.get('reason', '')} |"
+                )
+        notes = arch.get("notes", [])
+        if notes:
+            lines.append("")
+            lines.append("**Notes:**")
+            for note in notes:
+                lines.append(f"- {note}")
+        lines.append("")
+
+    # ── 7. Optimisation tips ──────────────────────────────────────────────────
+    tips = output.get("optimisation_tips", [])
+    if tips:
+        lines += ["## 7. Optimisation Tips", ""]
+        for tip in tips:
+            impact = tip.get("impact", "medium").upper()
+            lines.append(f"**[{impact}] {tip.get('title', '')}**")
+            lines.append(f"> {tip.get('detail', '')}")
+            lines.append("")
+
+    # ── 8. Confidence ─────────────────────────────────────────────────────────
+    conf = output.get("confidence", {})
+    lines += [
+        "## 8. Confidence",
+        "",
+        f"**Score:** {conf.get('score', '?').upper()}",
+        "",
+        f"**Reason:** {conf.get('reason', '')}",
+        "",
+    ]
+    assumptions = conf.get("assumptions", [])
+    if assumptions:
+        lines.append("**Assumptions:**")
+        for a in assumptions:
+            lines.append(f"- {a}")
+        lines.append("")
+
+    return "\n".join(lines)
 
 
 # ENGINE
@@ -787,23 +1419,83 @@ class RecommendationEngine:
 
         # -- Step 1: Analyzer (1 LLM call) ------------------------------------
         log.log_info("Step 1/3 — Analyzer")
-        analysis       = _run_analyzer(answers, timestamp)
-        app_summary    = analysis.get("app_summary", {})
-        stage_pointers = analysis.get("stage_pointers", {})
+        analysis              = _run_analyzer(answers, timestamp)
+        app_summary           = analysis.get("app_summary", {})
+        stage_pointers        = analysis.get("stage_pointers", {})
+        stage_token_estimates = analysis.get("stage_token_estimates", {})
+        description_extracts  = analysis.get("description_extracts", {})
         log.log_info(f"  done ({time.time()-t0:.1f}s)")
+
+        # -- Deterministic enforcement of description_extracts ------------------
+        # The Analyzer (LLM) understood app_description and structured what it found.
+        # We now enforce those extracts deterministically before passing to later steps.
+
+        # 1. Provider / model constraints → feed catalog matcher so only matching
+        #    models appear as candidates; also passed to Synthesizer as hard constraint.
+        explicit_providers = [p.lower() for p in answers.get("provider_preferences", [])]
+        desc_providers     = [p.lower() for p in description_extracts.get("preferred_providers", [])]
+        seen: set          = set()
+        preferred_providers: list[str] = []
+        for p in explicit_providers + desc_providers:   # explicit takes priority
+            if p not in seen:
+                seen.add(p)
+                preferred_providers.append(p)
+        if preferred_providers:
+            log.log_info(f"Provider filter active (enforced): {preferred_providers}")
+
+        # 2. Token overrides → replace stage_token_estimates so Synthesizer uses
+        #    real numbers from app_description, not generic defaults.
+        if description_extracts.get("has_token_override"):
+            inp_override = description_extracts.get("avg_input_tokens_override")
+            out_override = description_extracts.get("avg_output_tokens_override")
+            if inp_override or out_override:
+                for stage in stage_token_estimates:
+                    if inp_override:
+                        stage_token_estimates[stage]["avg_input_tokens"]  = inp_override
+                    if out_override:
+                        stage_token_estimates[stage]["avg_output_tokens"] = out_override
+                log.log_info(
+                    f"Token estimates overridden from app_description: "
+                    f"input={inp_override} output={out_override}"
+                )
+
+        # 3. Scale overrides → patch app_summary so Synthesizer workload_profile is accurate.
+        if description_extracts.get("has_scale_override"):
+            if description_extracts.get("active_users"):
+                app_summary["active_users"] = description_extracts["active_users"]
+            if description_extracts.get("daily_executions"):
+                app_summary["daily_executions"] = description_extracts["daily_executions"]
+            if description_extracts.get("monthly_executions"):
+                app_summary["monthly_executions"] = description_extracts["monthly_executions"]
 
         # -- Step 2: Catalog matcher (pure Python) ------------------------------
         log.log_info("Step 2/3 — Catalog Matcher")
-        stage_catalog = _run_catalog_matcher(stage_pointers, privacy_regional=privacy_regional)
+        stage_catalog = _run_catalog_matcher(
+            stage_pointers,
+            privacy_regional=privacy_regional,
+            preferred_providers=preferred_providers if preferred_providers else None,
+        )
         log.log_info(f"  done ({time.time()-t0:.1f}s)")
 
         # -- Step 3: Synthesizer (1 LLM call) ─────────────────────────────────
         log.log_info("Step 3/3 — Synthesizer")
-        final = _run_synthesizer(app_summary, stage_catalog, answers, input_hash, timestamp)
+        final = _run_synthesizer(
+            app_summary, stage_catalog, stage_token_estimates, answers, input_hash, timestamp,
+            preferred_providers=preferred_providers if preferred_providers else None,
+            description_extracts=description_extracts if description_extracts else None,
+        )
         log.log_info(f"  done ({time.time()-t0:.1f}s total)")
         if final:
             log.log_info("Recommendation generated successfully")
-            return _normalize(final, input_hash, answers)  # type: ignore
+            normalized = _normalize(final, input_hash, answers)
+            # Stash intermediate data so the API layer can build the full reasoning
+            # report after pricing is infused (pricing rates aren't available here).
+            normalized["_reasoning_inputs"] = {
+                "answers":       answers,
+                "analysis":      analysis,
+                "stage_catalog": stage_catalog,
+            }
+            return normalized  # type: ignore
         else:
             log.log_warning("Failed to generate recommendation")
             return None #type:ignore
@@ -816,7 +1508,7 @@ class RecommendationEngine:
 
 #     sample = QuestionnaireInput(answers={
 #         "app_type":          "Enterprise Knowledge Assistant",
-#         "app_description":   "Internal HR assistant. Answers policy Qs, summarises docs.",
+#         "app_description":   "use openai and anthropic models only",
 #         "context_size":      "Large",
 #         "latency":           "Fast",
 #         "scale":             "Enterprise",
@@ -833,4 +1525,4 @@ class RecommendationEngine:
 
 #     print(sample)
 #     output = RecommendationEngine(verbose=True).run(sample)
-#     # print(json.dumps(output, indent=2, ensure_ascii=False))
+#     print(json.dumps(output, indent=2, ensure_ascii=False))

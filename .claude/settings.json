@@ -1,4 +1,21 @@
 {
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/GAURAW~1.JUM/AppData/Local/Temp/**)",
+      "PowerShell(Invoke-WebRequest -Uri \"https://docs-starring-ivory-commented.trycloudflare.com/health\" -UseBasicParsing)",
+      "PowerShell(aws ssm describe-instance-information --region ap-southeast-2 --query \"InstanceInformationList[?InstanceId=='i-00895409f2b2251b9']\" 2>&1)",
+      "PowerShell(aws ec2 describe-instances --instance-ids i-00895409f2b2251b9 --region ap-southeast-2 --query \"Reservations[0].Instances[0].{State:State.Name,PublicIP:PublicIpAddress,IAMRole:IamInstanceProfile}\" 2>&1)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://github.com/gaurawjumnake/token-usage-calculator.git)",
+      "PowerShell(aws iam create-role --role-name EC2-SSM-Role --assume-role-policy-document '{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}' --region ap-southeast-2 2>&1)",
+      "PowerShell(aws iam create-role --role-name EC2-SSM-Role --assume-role-policy-document \"file://C:\\\\Users\\\\GAURAW~1.JUM\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--token-usage-calculator\\\\aa057e39-2e5f-4a34-99c6-6ac70ef421a6\\\\scratchpad\\\\trust-policy.json\" 2>&1)",
+      "PowerShell(aws iam attach-role-policy --role-name EC2-SSM-Role --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore 2>&1)",
+      "PowerShell(aws iam create-instance-profile --instance-profile-name EC2-SSM-Profile 2>&1)",
+      "PowerShell(aws iam add-role-to-instance-profile --instance-profile-name EC2-SSM-Profile --role-name EC2-SSM-Role 2>&1)",
+      "PowerShell(aws ec2 associate-iam-instance-profile --instance-id i-00895409f2b2251b9 --iam-instance-profile Name=EC2-SSM-Profile --region ap-southeast-2 2>&1)",
+      "Bash(aws ssm *)",
+      "PowerShell(aws ssm describe-instance-information --region ap-southeast-2 --query \"InstanceInformationList[?InstanceId=='i-00895409f2b2251b9'].{Id:InstanceId,Status:PingStatus,Platform:PlatformName,AgentVersion:AgentVersion}\" --output table 2>&1)"
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {

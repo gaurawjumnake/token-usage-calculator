@@ -16,4 +16,5 @@ dependencies = [
     "plotly>=5.24.0",
     "reportlab>=4.2.0",
     "azure-identity-broker>=1.3.0",
+    "mangum>=0.21.0",
 ]
