@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from mangum import Mangum
+
 from backend.api.recommendation_api import router as recommendation_router
 from backend.api.questionare_api import router as questionare_router
 from backend.api.models_api import router as models_router
@@ -13,11 +13,10 @@ app = FastAPI(
     version="1.0.0"
 )
  
-origins = ["*"] 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"] ,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,8 +30,6 @@ app.include_router(questionare_router, prefix = prefix, tags=["Questionnaire"])
 app.include_router(models_router, prefix = prefix, tags=["Models"])
 log.log_info("All routers are up...")
 
-handler = Mangum(app, lifespan="auto")
-
 @app.get("/")
 def read_root():
     return {"status":200,
@@ -42,6 +39,11 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status":200}
+
+from mangum import Mangum
+handler = Mangum(app, lifespan="auto")
+
+
 
 if __name__ == "__main__":
     import uvicorn

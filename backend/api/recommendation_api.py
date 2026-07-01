@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from backend.app.recommendation_engine.input_schema import QuestionnaireInput
 from backend.app.recommendation_engine.output_schema_FINAL import RecommendationOutput_API
-from backend.app.recommendation_engine.recommendation_engine import RecommendationEngine
+from backend.app.recommendation_engine.recommendation_engine import RecommendationEngine, _build_reasoning_md
 from backend.app.recommendation_engine.model_data_extractor import ModelDataExtractor
 from backend.utilites.app_logger import Logger
 
@@ -54,14 +54,27 @@ async def get_recommendations(payload: QuestionnaireInput) -> RecommendationOutp
             timeout=_REQUEST_TIMEOUT_SECONDS,
         )
         log.log_info
+        reasoning_inputs = result.pop("_reasoning_inputs", {}) if isinstance(result, dict) else {}
         result = _get_extractor().infuse_model_pricing_data(result)
-        
+
         if isinstance(result, dict) and "error" in result:
             log.log_error(f"extractor failed | hash={input_hash} | error={result['error']}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to process recommendation pricing data.",
             )
+
+        if reasoning_inputs:
+            try:
+                result["reasoning_md"] = _build_reasoning_md(
+                    reasoning_inputs["answers"],
+                    reasoning_inputs["analysis"],
+                    reasoning_inputs["stage_catalog"],
+                    result,
+                )
+            except Exception as e:
+                log.log_warning(f"Failed to build reasoning_md: {e}")
+                result["reasoning_md"] = None
 
         log.log_info(f"recommendation generated | hash={input_hash}")
         return result #type:ignore

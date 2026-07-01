@@ -10,11 +10,26 @@ llm_azure = LLM(model="azure/gpt-4o",
           temperature=0.5,
           )
  
-# llm_gemini = LLM(
-#     model="gemini/gemini-2.5-flash",
-#     api_key=os.getenv("GEMINI_API_KEY"))
+llm_gemini = LLM(
+    model="gemini/gemini-2.5-flash",
+    api_key=os.getenv("GEMINI_API_KEY"))
 
-llm = llm_azure
+def _check_llm(candidate: LLM) -> bool:
+    try:
+        candidate.call([{"role": "user", "content": "ping"}])
+        return True
+    except Exception:
+        return False
+
+def _resolve_llm() -> LLM:
+    for candidate in [llm_gemini, llm_azure]:
+        if _check_llm(candidate):
+            print(f"[llm_models] Using model: {candidate.model}")
+            return candidate
+    raise RuntimeError("No LLM available — check API keys and connectivity.")
+
+llm = _resolve_llm()
+
 # llm = LLM(model="ollama/codellama:7b",
 #           base_url="http://localhost:11434")
 
