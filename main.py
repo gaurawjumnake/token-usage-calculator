@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+import os
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from backend.api.recommendation_api import router as recommendation_router
 from backend.api.questionare_api import router as questionare_router
@@ -12,17 +15,25 @@ app = FastAPI(
     description="API for calculating token usage and providing LLM recommendations based on user input.",
     version="1.0.0"
 )
- 
-origins = ["http://localhost", "http://localhost:8000", "http://localhost:8080"] 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
-    
 )
+
+ORIGIN_SECRET = os.getenv("ORIGIN_SECRET", "")
+
+class OriginSecretMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if ORIGIN_SECRET and request.url.path not in ("/health", "/"):
+            if request.headers.get("X-Origin-Secret") != ORIGIN_SECRET:
+                return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+        return await call_next(request)
+
+app.add_middleware(OriginSecretMiddleware)
 
 prefix="/api/v1"
 
